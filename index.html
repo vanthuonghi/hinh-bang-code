@@ -142,7 +142,7 @@
     <p style="margin-top:0;color:var(--muted);font-size:14px">Hai cách gọi từ máy — không cần mở trang:</p>
     <p style="font-size:14px"><strong>1. REST API</strong> (cần token scopes <code class="inline-code">repo</code> + <code class="inline-code">workflow</code>):</p>
     <pre class="inline-code" style="white-space:pre-wrap;background:#0d1017;padding:12px;border-radius:8px;font-size:12.5px;overflow:auto">POST https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches
-{ "inputs": { "title": "Tiêu đề", "subtitle": "Phụ đề", "size": "1200x630", "theme": "aurora", "layout": "quote" } }
+{ "ref": "refs/heads/main", "inputs": { "title": "Tiêu đề", "subtitle": "Phụ đề", "size": "1200x630", "theme": "aurora", "layout": "quote" } }   // thiếu "ref" sẽ bị 422
 
 # rồi lấy ảnh:
 GET  https://api.github.com/repos/vanthuonghi/hinh-bang-code/contents/gallery/manifest.json

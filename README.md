@@ -52,7 +52,8 @@ Cần token scopes `repo` + `workflow` (đặt `GITHUB_TOKEN`):
 # 1. gửi yêu cầu render
 curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
   https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches \
-  -d '{"inputs":{"title":"Tiêu đề","subtitle":"Phụ đề","size":"1080x1350","theme":"aurora","layout":"quote"}}'
+  -d '{"ref":"refs/heads/main","inputs":{"title":"Tiêu đề","subtitle":"Phụ đề","size":"1080x1350","theme":"aurora","layout":"quote"}}'
+# lưu ý: thiếu "ref" sẽ bị 422
 
 # 2. đọc manifest (có trường user, issue, size, theme, layout, date)
 curl -H "Authorization: Bearer $GITHUB_TOKEN" \
