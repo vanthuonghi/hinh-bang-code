@@ -1,6 +1,17 @@
 {
-  "generated": "2026-10-29T02:54:53.963Z",
+  "generated": "2026-10-29T02:58:04.302Z",
   "images": [
+    {
+      "file": "test-api-tu-readme-20261029025804.png",
+      "svg": "test-api-tu-readme-20261029025804.svg",
+      "title": "Test API từ README",
+      "theme": "rose",
+      "layout": "quote",
+      "size": "1200x1200",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-10-29T02:58:04.302Z"
+    },
     {
       "file": "test-nhanh-issue-voi-code-moi-20261029025453-iss6.png",
       "svg": "test-nhanh-issue-voi-code-moi-20261029025453-iss6.svg",

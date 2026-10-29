@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-rose-quote" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f953c6"/><stop offset="1" stop-color="#b91d73"/></linearGradient></defs>
+<rect width="1200" height="1200" fill="url(#g-rose-quote)"/>
+<circle cx="1056" cy="216" r="192" fill="#ffffff2e"/>
+<circle cx="144" cy="1104" r="264" fill="#ffffff2e"/>
+<circle cx="900" cy="1020" r="84.00000000000001" fill="#ffffff2e"/>
+<text x="84" y="578.32" font-size="94" font-weight="800" text-anchor="start" fill="#ffe9a8" opacity="0.85">&#8220;</text>
+<text x="84" y="629.74" font-size="59" font-weight="800" text-anchor="start" fill="#ffffff">Test API từ README</text>
+<text x="84" y="684.5" font-size="25" font-weight="400" text-anchor="start" fill="#ffffffd9">Chạy đúng curl trong tài liệu</text>
+<rect x="84" y="1088.8" width="72" height="7" fill="#ffe9a8"/>
+<text x="84" y="1116" font-size="17" font-weight="600" fill="#ffffffd9">sinh bằng code · 2026-10-29</text>
+<text x="1116" y="1116" font-size="17" font-weight="600" text-anchor="end" fill="#ffffffd9">rose · quote · 1200×1200</text>
+</svg>
