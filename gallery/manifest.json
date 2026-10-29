@@ -1,6 +1,17 @@
 {
-  "generated": "2026-10-29T07:44:35.251Z",
+  "generated": "2026-10-29T07:49:27.041Z",
   "images": [
+    {
+      "file": "test-concurrency-1-20261029074926.png",
+      "svg": "test-concurrency-1-20261029074926.svg",
+      "title": "Test concurrency 1",
+      "theme": "clay",
+      "layout": "list",
+      "size": "800x800",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-10-29T07:49:27.040Z"
+    },
     {
       "file": "verify-run-sau-p0-p1-terminal-1280x720-20261029074435.png",
       "svg": "verify-run-sau-p0-p1-terminal-1280x720-20261029074435.svg",
