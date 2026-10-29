@@ -1,14 +1,18 @@
 # 🎨 Sinh hình bằng code
 
-Trang tĩnh nhập yêu cầu hình → **GitHub Actions tự render ảnh** (SVG → PNG) và trả kết quả ngay trong issue. Có **API + CLI cho agent (Hermes)**, 18 bảng màu, 12 kích thước (đủ size Facebook + LinkedIn/YouTube/Pinterest), 9 bố cục, 6 mẫu có sẵn, đăng nhập PAT tùy chọn.
+Trang tĩnh nhập yêu cầu hình — **tải PNG/SVG ngay trong trình duyệt: miễn phí, không cần đăng nhập, không token, không chờ**. Muốn lưu ảnh vào gallery công khai thì để **GitHub Actions tự render** và trả kết quả trong issue. Có **API + CLI cho agent (Hermes)**, 18 bảng màu, 12 kích thước (đủ size Facebook + LinkedIn/YouTube/Pinterest), 9 bố cục, 6 mẫu có sẵn, đăng nhập PAT hoàn toàn tuỳ chọn.
 
 ## Cách hoạt động
 
 ```
-index.html (nhập yêu cầu, đăng nhập PAT tùy chọn)
-    │  đã đăng nhập → POST /repos/.../issues  (tạo ngay tại trang)
-    │  chưa đăng nhập → mở trang tạo issue của GitHub
-    │  máy/agent → POST /actions/workflows/render.yml/dispatches
+index.html (nhập yêu cầu — ai cũng dùng được, không cần đăng nhập)
+    │
+    │  ⬇ Tải PNG / Tải SVG  →  raster NGAY TRONG TRÌNH DUYỆT  ← không cần gì cả
+    │
+    │  (tuỳ chọn) Lưu lên gallery GitHub:
+    │   đã dán PAT  → POST /repos/.../issues        (tạo ngay tại trang)
+    │   chưa đăng nhập → mở trang tạo issue của GitHub
+    │   máy/agent  → POST /actions/workflows/render.yml/dispatches
     ▼
 GitHub Issue [render]  hoặc  workflow_dispatch
     │  .github/workflows/render.yml
@@ -19,14 +23,16 @@ node render.mjs  (lib/svg.js → SVG → sharp → PNG)
 commit vào gallery/  +  comment ảnh vào issue (nếu là issue)
 ```
 
-Không cần API key AI, không cần server — chỉ dùng GitHub Actions miễn phí.
+Nhánh raster trong trình duyệt **không đụng GitHub Actions**: miễn phí, không giới hạn số lượng, có ngay lập tức. Nhánh Actions (repo public) cũng **miễn phí không giới hạn Actions minutes**, chỉ mất ~30s và cần tài khoản GitHub để mở issue.
 
 ## Dùng trên trang
 
 1. Mở <https://vanthuonghi.github.io/hinh-bang-code/> (hoặc `index.html` local).
 2. Nhập tiêu đề / phụ đề, chọn **bảng màu (18)**, **bố cục (9)**, **kích thước (12, Facebook đứng đầu)** — hoặc bấm nhanh 1 trong **6 mẫu có sẵn**.
-3. Bấm **Tạo yêu cầu trên GitHub** → Actions render ~30s → ảnh nằm trong [`gallery/`](gallery/).
-4. *Tùy chọn — đăng nhập*: dán PAT (scope `repo`) 1 lần → trang tạo issue thẳng bằng API, không rời trang, và có nút **Của tôi** lọc gallery theo user. Token chỉ nằm trong `localStorage` của trình duyệt, không gửi đi đâu khác `api.github.com`.
+3. Bấm **⬇ Tải PNG** → ảnh render ngay trên máy bạn: **không đăng nhập, không token, không chờ** (dùng được với mọi size, không giới hạn số lượng). Nút **Tải SVG** nếu muốn mở tay trong Illustrator/Figma.
+4. *Tuỳ chọn — Lưu lên gallery GitHub*: nút **Lưu vào gallery GitHub** → Actions render ~30s → ảnh nằm trong [`gallery/`](gallery/). Dán PAT 1 lần nếu muốn tạo issue ngay tại trang và có nút **Của tôi**; token chỉ nằm trong `localStorage`, không gửi đi đâu khác `api.github.com`. Không dán PAT thì trang mở trang tạo issue của GitHub như bình thường.
+
+> **Lưu ý font**: PNG tải từ trình duyệt dùng font hệ thống (Helvetica/Arial), bản render trên Actions dùng Noto Sans — bố cục, cỡ chữ, dòng xuống hàng như nhau, chỉ khác hình dáng chữ một chút.
 
 ## Kích thước
 

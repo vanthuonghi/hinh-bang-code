@@ -75,7 +75,7 @@
 <div class="wrap">
   <header>
     <h1>🎨 Sinh hình bằng code</h1>
-    <p>Nhập yêu cầu → mở GitHub Issue → <strong>GitHub Actions tự render</strong> ảnh PNG/SVG và trả kết quả trong issue. Máy/Hermes gọi qua <strong>API + CLI</strong> ở mục cuối trang.</p>
+    <p><strong>Miễn phí · không cần đăng nhập · không cần token.</strong> Nhập tiêu đề → <strong>tải PNG ngay trong trình duyệt</strong> (render trên máy bạn, không chờ Actions, không giới hạn số lượng). Muốn lưu ảnh vào gallery công khai của GitHub thì dùng nút bên phải (chỉ phần này mới cần tài khoản GitHub).</p>
   </header>
 
   <div class="auth">
@@ -87,7 +87,7 @@
       <img id="avatar" alt="" /><span id="loginName"></span>
       <button id="logout">Đăng xuất</button>
     </div>
-    <span id="authMsg" class="hint" style="margin:0">Token chỉ lưu trong trình duyệt, gửi thẳng tới api.github.com.</span>
+    <span id="authMsg" class="hint" style="margin:0">Tải PNG/SVG <strong>không cần gì cả</strong> — dán PAT ở đây chỉ khi muốn tạo issue GitHub ngay tại trang. Token nằm riêng trong trình duyệt của bạn.</span>
   </div>
 
   <div class="grid">
@@ -117,9 +117,11 @@
       <input type="text" id="footer" placeholder="Để trống sẽ hiện 'sinh bằng code · ngày'" maxlength="80" />
 
       <div class="actions">
-        <button class="cta" id="go">Tạo yêu cầu trên GitHub →</button>
+        <button class="cta" id="dlPng">⬇ Tải PNG (miễn phí, không cần đăng nhập)</button>
         <button class="ghost" id="dl">Tải SVG</button>
+        <button class="ghost" id="go">Lưu vào gallery GitHub →</button>
       </div>
+      <div class="hint">PNG được raster ngay trên máy bạn từ cùng <code class="inline-code">lib/svg.js</code> — không server, không hàng chờ.</div>
       <div class="err" id="err"></div>
       <div class="ok" id="ok"></div>
       <div class="hint" id="goHint"></div>
@@ -159,7 +161,7 @@ node bin/hinh.mjs get &lt;tên-file.png&gt; --out ./anh</pre>
 </div>
 
 <script type="module">
-import { THEMES, SIZES, SIZE_LABELS, LAYOUTS, PRESETS, buildSVG, parseRequest } from './lib/svg.js';
+import { THEMES, SIZES, SIZE_LABELS, LAYOUTS, PRESETS, buildSVG, parseRequest, slugify } from './lib/svg.js';
 
 const REPO = document.body.dataset.repo;
 const $ = (id) => document.getElementById(id);
@@ -289,8 +291,8 @@ function session() {
   $('authLogged').style.display = logged ? 'flex' : 'none';
   $('mineBtn').style.display = logged ? '' : 'none';
   $('goHint').textContent = logged
-    ? `Đã đăng nhập ${state.user.login} — yêu cầu được tạo thẳng qua API (không rời trang).`
-    : 'Chưa đăng nhập — nút sẽ mở trang tạo issue của GitHub. Dán PAT ở trên để tạo ngay tại đây.';
+    ? `Đã đăng nhập ${state.user.login} — ảnh được tạo issue thẳng qua API (không rời trang).`
+    : 'Chưa đăng nhập — nút này sẽ mở trang tạo issue của GitHub (phần duy nhất cần tài khoản). Tải PNG thì không cần gì.';
   renderGallery();
 }
 
@@ -388,14 +390,59 @@ $('go').onclick = async () => {
   }
 };
 
-$('dl').onclick = () => {
-  const svg = buildSVG({ ...currentRequest(), title: currentRequest().title || 'Yêu cầu hình' });
-  const blob = new Blob([svg], { type: 'image/svg+xml' });
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'hinh.svg';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);   // revoke ngay có thể hủy tải trên một số trình duyệt
+}
+
+// Raster SVG → PNG ngay trên máy: không server, không token, không đăng nhập.
+// Khác Actions (dùng Noto Sans) ở chỗ font theo hệ thống — bố cục/cỡ chữ như nhau.
+async function rasterPng(req) {
+  const [W, H] = SIZES[req.size];
+  const svg = buildSVG(req);
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+  try {
+    const img = new Image();
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = () => rej(new Error('Trình duyệt không raster được SVG'));
+      img.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    canvas.getContext('2d').drawImage(img, 0, 0, W, H);
+    const blob = await new Promise((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error('Không tạo được PNG'))), 'image/png'));
+    return { blob, W, H };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+$('dlPng').onclick = async () => {
+  const req = currentRequest();
+  if (!req.title) { showErr('Nhập tiêu đề trước đã.'); $('title').focus(); return; }
+  const btn = $('dlPng'); const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Đang tạo PNG…';
+  try {
+    const { blob, W, H } = await rasterPng(req);
+    const name = `${slugify(req.title)}-${req.size}.png`;
+    downloadBlob(blob, name);
+    showOk(`✅ Đã tải ${name} · ${W}×${H} · ${(blob.size / 1024).toFixed(0)} KB — không cần đăng nhập, không qua server`);
+  } catch (e) {
+    showErr('Tải PNG lỗi: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+};
+
+$('dl').onclick = () => {
+  const req = currentRequest();
+  const svg = buildSVG({ ...req, title: req.title || 'Yêu cầu hình' });
+  downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${slugify(req.title || 'hinh')}.svg`);
 };
 
 // ---------- gallery ----------
