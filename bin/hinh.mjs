@@ -108,8 +108,10 @@ async function newImage() {
 
   const tok = token();
   const started = new Date().toISOString();
+  // GitHub đòi `ref` trong body dispatch (mặc định nhánh chính của repo)
+  const ref = args.ref === undefined || args.ref === true ? 'refs/heads/main' : String(args.ref);
   await api(`/repos/${REPO}/actions/workflows/render.yml/dispatches`, {
-    method: 'POST', body: { inputs: req }, tok,
+    method: 'POST', body: { ref, inputs: req }, tok,
   });
 
   if (!args.wait) {
