@@ -1,6 +1,15 @@
 {
-  "generated": "2026-10-29T02:22:31.797Z",
+  "generated": "2026-10-29T02:48:05.301Z",
   "images": [
+    {
+      "file": "kiem-thu-nut-tao-yeu-cau-qua-api-20261029024805-iss5.png",
+      "svg": "kiem-thu-nut-tao-yeu-cau-qua-api-20261029024805-iss5.svg",
+      "title": "Kiểm thử nút Tạo yêu cầu qua API",
+      "theme": "sunset",
+      "size": "1200x630",
+      "issue": "5",
+      "date": "2026-10-29T02:48:05.300Z"
+    },
     {
       "file": "1-thoi-quen-moi-sang-20261029022231-iss3.png",
       "svg": "1-thoi-quen-moi-sang-20261029022231-iss3.svg",
