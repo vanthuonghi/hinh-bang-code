@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-midnight" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#141428"/><stop offset="1" stop-color="#3b2f63"/>
+  </linearGradient></defs>
+<rect width="1920" height="1080" fill="url(#g-midnight)"/>
+<circle cx="1689.6" cy="194.4" r="307.2" fill="#ffffff1f"/>
+<circle cx="230.39999999999998" cy="993.6" r="422.4" fill="#ffffff1f"/>
+<circle cx="1440" cy="918" r="134.4" fill="#ffffff1f"/>
+<text x="134" y="383" font-size="28" font-weight="700" letter-spacing="5" fill="#f5f3ffcc" opacity="0.9">VANHI</text>
+<text x="134" y="533.16" font-size="106" font-weight="800" fill="#f5f3ff">3 công việc nên tự động hóa</text>
+<text x="134" y="652.16" font-size="106" font-weight="800" fill="#f5f3ff">ngay</text>
+<text x="134" y="736.7" font-size="45" font-weight="400" fill="#f5f3ffcc">Email, báo cáo, chốt đơn — làm 1 lần, dùng mãi</text>
+<rect x="134" y="902.8" width="115" height="11" fill="#8b7cff"/>
+<text x="134" y="946" font-size="27" font-weight="600" fill="#f5f3ffcc">sinh bằng code · 2026-10-29</text>
+<text x="1786" y="946" font-size="27" font-weight="600" text-anchor="end" fill="#f5f3ffcc">midnight · 1920×1080</text>
+</svg>
