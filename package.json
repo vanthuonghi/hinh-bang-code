@@ -1,0 +1,16 @@
+{
+  "name": "hinh-bang-code",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Nhập yêu cầu hình trên trang tĩnh → GitHub Actions tự render ảnh bằng code",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "sharp": "^0.33.5"
+  }
+}

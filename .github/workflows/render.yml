@@ -1,0 +1,97 @@
+name: Render hình
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: render-${{ github.event.issue.number }}
+
+jobs:
+  render:
+    # Chỉ chạy với issue có tiền tố [render] (trang tĩnh tự thêm tiền tố này)
+    if: startsWith(github.event.issue.title, '[render]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Cài dependency
+        run: npm ci --no-audit --no-fund
+
+      - name: Cài font hỗ trợ tiếng Việt (Noto Sans)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-core
+          fc-cache -f >/dev/null 2>&1 || true
+
+      - name: Render ảnh từ yêu cầu
+        id: render
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          node render.mjs | tee -a "$GITHUB_OUTPUT"
+
+      - name: Commit ảnh vào gallery/
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gallery
+          if git diff --cached --quiet; then
+            echo "Không có file mới để commit"
+          else
+            git commit -m "render #${{ github.event.issue.number }}"
+            git push
+          fi
+
+      - name: Báo kết quả lên issue
+        uses: actions/github-script@v7
+        env:
+          PNG: ${{ steps.render.outputs.PNG }}
+          SVG: ${{ steps.render.outputs.SVG }}
+        with:
+          script: |
+            const png = process.env.PNG;
+            const svg = process.env.SVG;
+            const raw = (p) => `https://github.com/${context.repo.owner}/${context.repo.repo}/raw/main/${p}`;
+            const body = [
+              '✅ **Đã render xong**',
+              '',
+              `![ảnh](${raw(png)})`,
+              '',
+              `[Tải PNG](${raw(png)}) · [Xem SVG](${raw(svg)}) · [Thư viện gallery](../../tree/main/gallery)`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Báo lỗi lên issue nếu render thất bại
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '❌ Render thất bại — xem log tại ' +
+                `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
