@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-steel-terminal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#485563"/><stop offset="1" stop-color="#29323c"/></linearGradient></defs>
+<rect width="1280" height="720" fill="url(#g-steel-terminal)"/>
+<circle cx="1126.4" cy="129.6" r="204.8" fill="#ffffff22"/>
+<circle cx="153.6" cy="662.4" r="281.6" fill="#ffffff22"/>
+<circle cx="960" cy="612" r="89.60000000000001" fill="#ffffff22"/>
+<rect x="90" y="90" width="1100" height="480.20000000000005" rx="28" fill="#0d1117" opacity="0.95"/>
+<rect x="90" y="90" width="1100" height="64" rx="28" fill="#1c2431"/>
+<rect x="90" y="126" width="1100" height="28" fill="#1c2431"/>
+<circle cx="128" cy="122" r="10" fill="#ff5f57"/>
+<circle cx="160" cy="122" r="10" fill="#febc2e"/>
+<circle cx="192" cy="122" r="10" fill="#28c840"/>
+<text x="640" y="134" font-size="26" font-weight="600" text-anchor="middle" fill="#9aa3b5">VANHI</text>
+<text x="90" y="316" font-size="70" font-weight="800" text-anchor="start" fill="#eef2f7">Verify run sau P0 P1 —</text>
+<text x="90" y="394" font-size="70" font-weight="800" text-anchor="start" fill="#eef2f7">terminal 1280x720</text>
+<text x="90" y="455" font-size="29" font-weight="400" text-anchor="start" fill="#eef2f7cc">npm test chay truoc khi render;concurrency serialize push</text>
+<rect x="90" y="601" width="77" height="7" fill="#7dd3fc"/>
+<text x="90" y="630" font-size="18" font-weight="600" fill="#eef2f7cc">sinh bằng code · 2026-10-29</text>
+<text x="1190" y="630" font-size="18" font-weight="600" text-anchor="end" fill="#eef2f7cc">steel · terminal · 1280×720</text>
+</svg>

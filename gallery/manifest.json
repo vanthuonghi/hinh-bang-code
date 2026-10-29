@@ -1,6 +1,17 @@
 {
-  "generated": "2026-10-29T02:58:04.302Z",
+  "generated": "2026-10-29T07:44:35.251Z",
   "images": [
+    {
+      "file": "verify-run-sau-p0-p1-terminal-1280x720-20261029074435.png",
+      "svg": "verify-run-sau-p0-p1-terminal-1280x720-20261029074435.svg",
+      "title": "Verify run sau P0 P1 — terminal 1280x720",
+      "theme": "steel",
+      "layout": "terminal",
+      "size": "1280x720",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-10-29T07:44:35.250Z"
+    },
     {
       "file": "test-api-tu-readme-20261029025804.png",
       "svg": "test-api-tu-readme-20261029025804.svg",
