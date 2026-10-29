@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-forest" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#143d2b"/><stop offset="1" stop-color="#4f9d69"/>
+  </linearGradient></defs>
+<rect width="1200" height="630" fill="url(#g-forest)"/>
+<circle cx="1056" cy="113.39999999999999" r="192" fill="#ffffff2b"/>
+<circle cx="144" cy="579.6" r="264" fill="#ffffff2b"/>
+<circle cx="900" cy="535.5" r="84.00000000000001" fill="#ffffff2b"/>
+<text x="84" y="214" font-size="17" font-weight="700" letter-spacing="3" fill="#f4fff7cc" opacity="0.9">VANHI</text>
+<text x="84" y="306.76" font-size="66" font-weight="800" fill="#f4fff7">Hành trình tự động hóa cho</text>
+<text x="84" y="380.76" font-size="66" font-weight="800" fill="#f4fff7">doanh nghiệp nhỏ</text>
+<text x="84" y="440.08" font-size="28" font-weight="400" fill="#f4fff7cc">Từ 10 giờ/tuần thủ công xuống còn 1 giờ</text>
+<rect x="84" y="518.8" width="72" height="7" fill="#ffd166"/>
+<text x="84" y="546" font-size="17" font-weight="600" fill="#f4fff7cc">vanhi.id.vn</text>
+<text x="1116" y="546" font-size="17" font-weight="600" text-anchor="end" fill="#f4fff7cc">forest · 1200×630</text>
+</svg>
