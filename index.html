@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sinh hình bằng code — nhập yêu cầu, GitHub tự render</title>
-<meta name="description" content="Trang tĩnh nhập yêu cầu hình; GitHub Actions tự sinh ảnh (SVG → PNG) và trả về issue." />
+<meta name="description" content="Trang tĩnh nhập yêu cầu hình; GitHub Actions tự sinh ảnh (SVG → PNG) và trả về issue. Có API/CLI cho agent." />
 <style>
   :root {
     --bg: #0f1117; --card: #171a23; --border: #262b38; --ink: #e9ecf3;
@@ -15,56 +15,80 @@
     margin: 0; background: var(--bg); color: var(--ink);
     font: 15px/1.6 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 60px; }
   header h1 { font-size: 26px; margin: 0 0 6px; }
-  header p { color: var(--muted); margin: 0 0 26px; }
+  header p { color: var(--muted); margin: 0 0 18px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
   @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
   label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
-  input[type=text], textarea {
+  input[type=text], input[type=password] {
     width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
     background: #0d1017; color: var(--ink); font: inherit; outline: none;
   }
-  input[type=text]:focus, textarea:focus { border-color: var(--accent); }
+  input[type=text]:focus, input[type=password]:focus { border-color: var(--accent); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border);
+    background: #0d1017; color: var(--muted); cursor: pointer; font: inherit; font-size: 12.5px;
+  }
+  .chip.active { border-color: var(--accent); color: var(--ink); background: #1b2340; }
   .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
-  .swatch {
-    width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent;
-    cursor: pointer; padding: 0;
-  }
+  .swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
   .swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
-  .sizes { display: flex; gap: 8px; flex-wrap: wrap; }
-  .size {
-    padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border);
-    background: #0d1017; color: var(--muted); cursor: pointer; font: inherit; font-size: 13px;
-  }
-  .size.active { border-color: var(--accent); color: var(--ink); background: #1b2340; }
   .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
   button.cta, button.ghost {
     padding: 11px 18px; border-radius: 9px; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid transparent;
   }
   button.cta { background: var(--accent); color: #0b1020; }
   button.cta:hover { filter: brightness(1.08); }
+  button.cta:disabled { opacity: .55; cursor: wait; }
   button.ghost { background: transparent; color: var(--accent); border-color: var(--accent); }
   .err { color: var(--err); font-size: 13px; margin-top: 10px; display: none; }
+  .ok { color: var(--ok); font-size: 13.5px; margin-top: 10px; display: none; }
   #preview { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
   #preview svg { display: block; width: 100%; height: auto; }
   .hint { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
-  .hint code { background: #0d1017; padding: 1px 6px; border-radius: 5px; color: var(--accent); }
+  .hint code, .inline-code { background: #0d1017; padding: 1px 6px; border-radius: 5px; color: var(--accent); }
   h2 { font-size: 18px; margin: 40px 0 14px; }
+  /* đăng nhập */
+  .auth { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;
+          background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .auth .grow { flex: 1; min-width: 220px; }
+  .auth input { margin: 0; }
+  .auth button { padding: 9px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer;
+                 border: 1px solid var(--accent); background: transparent; color: var(--accent); }
+  .auth button.primary { background: var(--accent); color: #0b1020; }
+  .who { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  .who img { width: 26px; height: 26px; border-radius: 50%; }
+  .who button { border-color: var(--border); color: var(--muted); }
+  /* gallery */
+  .gbar { display: flex; gap: 8px; margin-bottom: 12px; }
   #gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
   #gallery a { display: block; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
-  #gallery img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; }
+  #gallery img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; background: #0d1017; }
   #gallery .meta { font-size: 12px; color: var(--muted); padding: 8px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .empty { color: var(--muted); font-size: 14px; }
 </style>
 </head>
-<body data-repo="vanthuonghi/hinh-bang-code">
+<body data-repo="vanthuonghi/hinh-bang-code" data-oauth-client="">
 <div class="wrap">
   <header>
     <h1>🎨 Sinh hình bằng code</h1>
-    <p>Nhập yêu cầu hình bên dưới → trang sẽ tạo một GitHub Issue → <strong>GitHub Actions tự render</strong> ảnh PNG/SVG và trả kết quả ngay trong issue.</p>
+    <p>Nhập yêu cầu → mở GitHub Issue → <strong>GitHub Actions tự render</strong> ảnh PNG/SVG và trả kết quả trong issue. Máy/Hermes gọi qua <strong>API + CLI</strong> ở mục cuối trang.</p>
   </header>
+
+  <div class="auth">
+    <div id="authAnonymous" class="grow" style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="password" id="pat" placeholder="Dán PAT GitHub để đăng nhập (tùy chọn — chỉ tạo issue ngay tại trang)" style="flex:1;min-width:200px" />
+      <button id="login" class="primary">Đăng nhập</button>
+    </div>
+    <div id="authLogged" class="who" style="display:none">
+      <img id="avatar" alt="" /><span id="loginName"></span>
+      <button id="logout">Đăng xuất</button>
+    </div>
+    <span id="authMsg" class="hint" style="margin:0">Token chỉ lưu trong trình duyệt, gửi thẳng tới api.github.com.</span>
+  </div>
 
   <div class="grid">
     <section class="card">
@@ -77,11 +101,14 @@
       <label for="author">Tác giả / nhãn (dòng nhỏ trên cùng)</label>
       <input type="text" id="author" placeholder="Ví dụ: VANHI" maxlength="40" />
 
-      <label>Bảng màu</label>
+      <label>Bảng màu (12 mẫu)</label>
       <div class="swatches" id="swatches"></div>
 
-      <label>Kích thước</label>
-      <div class="sizes" id="sizes"></div>
+      <label>Bố cục</label>
+      <div class="chips" id="layouts"></div>
+
+      <label>Kích thước (Facebook trước)</label>
+      <div class="chips" id="sizes"></div>
 
       <label for="footer">Chú thích góc dưới (tùy chọn)</label>
       <input type="text" id="footer" placeholder="Để trống sẽ hiện 'sinh bằng code · ngày'" maxlength="80" />
@@ -90,170 +117,236 @@
         <button class="cta" id="go">Tạo yêu cầu trên GitHub →</button>
         <button class="ghost" id="dl">Tải SVG</button>
       </div>
-      <div class="err" id="err">❗ Nhập tiêu đề trước đã.</div>
-      <div class="hint">Cách khác: tự mở issue với tiền tố <code>[render]</code> trong tiêu đề — Actions vẫn render.</div>
+      <div class="err" id="err"></div>
+      <div class="ok" id="ok"></div>
+      <div class="hint" id="goHint"></div>
     </section>
 
     <section class="card">
       <label>Xem trước (render trực tiếp trong trình duyệt)</label>
       <div id="preview"></div>
-      <div class="hint">Ảnh thật do GitHub Actions render bằng <code>sharp</code> — cùng code sinh SVG nên khớp gần như tuyệt đối.</div>
+      <div class="hint">Ảnh thật do GitHub Actions render bằng <code class="inline-code">sharp</code> — cùng thư viện <code class="inline-code">lib/svg.js</code> nên khớp gần như tuyệt đối.</div>
     </section>
   </div>
 
   <h2>🗂️ Hình đã render</h2>
+  <div class="gbar">
+    <button class="chip active" data-filter="all">Tất cả</button>
+    <button class="chip" data-filter="mine" id="mineBtn" style="display:none">Của tôi</button>
+    <button class="chip" id="refreshBtn">↻ Tải lại</button>
+  </div>
   <div id="gallery"><p class="empty">Đang tải gallery…</p></div>
+
+  <h2>🤖 Cho agent / CLI (Hermes)</h2>
+  <div class="card">
+    <p style="margin-top:0;color:var(--muted);font-size:14px">Hai cách gọi từ máy — không cần mở trang:</p>
+    <p style="font-size:14px"><strong>1. REST API</strong> (cần token scopes <code class="inline-code">repo</code> + <code class="inline-code">workflow</code>):</p>
+    <pre class="inline-code" style="white-space:pre-wrap;background:#0d1017;padding:12px;border-radius:8px;font-size:12.5px;overflow:auto">POST https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches
+{ "inputs": { "title": "Tiêu đề", "subtitle": "Phụ đề", "size": "1200x630", "theme": "aurora", "layout": "quote" } }
+
+# rồi lấy ảnh:
+GET  https://api.github.com/repos/vanthuonghi/hinh-bang-code/contents/gallery/manifest.json
+raw  https://github.com/vanthuonghi/hinh-bang-code/raw/main/gallery/&lt;tên-file&gt;.png</pre>
+    <p style="font-size:14px"><strong>2. CLI</strong> (đi kèm repo, Node ≥20, không cần dependency):</p>
+    <pre class="inline-code" style="white-space:pre-wrap;background:#0d1017;padding:12px;border-radius:8px;font-size:12.5px;overflow:auto">export GITHUB_TOKEN=ghp_...   # hoặc: gh auth login
+node bin/hinh.mjs new --title "Tiêu đề" --theme aurora --layout quote --size 1080x1350 --wait
+node bin/hinh.mjs list --json
+node bin/hinh.mjs get &lt;tên-file.png&gt; --out ./anh</pre>
+  </div>
 </div>
 
-<script>
-const THEMES = {
-  sunset:   ['#ff7e5f', '#feb47b'],
-  ocean:    ['#1b3a6b', '#4b9fe1'],
-  forest:   ['#143d2b', '#4f9d69'],
-  midnight: ['#141428', '#3b2f63'],
-  violet:   ['#6a3be0', '#c86dd7'],
-  paper:    ['#f7f4ee', '#e7ded0'],
-};
-const SIZES = { '1200x630': [1200, 630], '1080x1080': [1080, 1080], '1920x1080': [1920, 1080], '800x800': [800, 800] };
-const state = { theme: 'sunset', size: '1200x630' };
+<script type="module">
+import { THEMES, SIZES, SIZE_LABELS, LAYOUTS, buildSVG, parseRequest } from './lib/svg.js';
 
+const REPO = document.body.dataset.repo;
 const $ = (id) => document.getElementById(id);
+const state = { theme: 'sunset', size: '1200x630', layout: 'left', filter: 'all', images: [], user: null, token: null };
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
-function wrap(text, maxChars) {
-  const words = String(text).trim().split(/\s+/).filter(Boolean);
-  const lines = []; let line = '';
-  for (const w of words) {
-    if (!line) { line = w; continue; }
-    if ((line + ' ' + w).length <= maxChars) line += ' ' + w;
-    else { lines.push(line); line = w; }
-  }
-  if (line) lines.push(line);
-  return lines;
-}
-
-// Giống hệt buildSVG() trong render.mjs — giữ hai bản đồng bộ khi đổi bố cục.
-function buildSVG(req) {
-  const [W, H] = SIZES[req.size];
-  const [from, to] = THEMES[req.theme];
-  const dark = req.theme !== 'paper';
-  const ink = dark ? '#ffffff' : '#221d16';
-  const sub = dark ? '#ffffffcc' : '#221d16cc';
-  const deco = dark ? '#ffffff30' : '#00000012';
-  const bar = req.theme === 'sunset' ? '#33160f' : (req.theme === 'paper' ? '#c2410c' : '#ffd166');
-  const pad = Math.round(W * 0.07);
-  const titleMaxChars = Math.floor((W - pad * 2) / (W * 0.055 * 0.54));
-  let fs = Math.round(W * 0.055);
-  let lines = wrap(req.title, titleMaxChars);
-  while (lines.length > 3 && fs > 24) {
-    fs = Math.round(fs * 0.86);
-    lines = wrap(req.title, Math.floor((W - pad * 2) / (fs * 0.54)));
-  }
-  const subFs = Math.max(16, Math.round(fs * 0.42));
-  const subLines = req.subtitle ? wrap(req.subtitle, Math.floor((W - pad * 2) / (subFs * 0.5))) : [];
-  const blockH = lines.length * fs * 1.12 + (subLines.length ? 18 + subLines.length * subFs * 1.3 : 0);
-  let y = Math.round((H - blockH) / 2);
-  const parts = [];
-  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
-  parts.push(`<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>`);
-  parts.push(`<rect width="${W}" height="${H}" fill="url(#g)"/>`);
-  parts.push(`<circle cx="${W * 0.88}" cy="${H * 0.18}" r="${W * 0.16}" fill="${deco}"/>`);
-  parts.push(`<circle cx="${W * 0.12}" cy="${H * 0.92}" r="${W * 0.22}" fill="${deco}"/>`);
-  parts.push(`<circle cx="${W * 0.75}" cy="${H * 0.85}" r="${W * 0.07}" fill="${deco}"/>`);
-  if (req.author) {
-    const eyebrowFs = Math.max(13, Math.round(fs * 0.26));
-    parts.push(`<text x="${pad}" y="${y}" font-size="${eyebrowFs}" font-weight="700" letter-spacing="${Math.round(eyebrowFs * 0.18)}" fill="${sub}" opacity="0.9">${esc(req.author.toUpperCase())}</text>`);
-    y += Math.round(eyebrowFs * 2.1);
-  }
-  for (const ln of lines) {
-    parts.push(`<text x="${pad}" y="${y + fs * 0.86}" font-size="${fs}" font-weight="800" fill="${ink}">${esc(ln)}</text>`);
-    y += Math.round(fs * 1.12);
-  }
-  if (subLines.length) {
-    y += 18;
-    for (const ln of subLines) {
-      parts.push(`<text x="${pad}" y="${y + subFs * 0.86}" font-size="${subFs}" fill="${sub}">${esc(ln)}</text>`);
-      y += Math.round(subFs * 1.3);
-    }
-  }
-  const footFs = Math.max(12, Math.round(W * 0.014));
-  const date = new Date().toISOString().slice(0, 10);
-  const left = req.footer || `sinh bằng code · ${date}`;
-  parts.push(`<rect x="${pad}" y="${H - pad - footFs * 1.6}" width="${Math.round(W * 0.06)}" height="${Math.max(4, Math.round(footFs * 0.4))}" fill="${bar}"/>`);
-  parts.push(`<text x="${pad}" y="${H - pad}" font-size="${footFs}" font-weight="600" fill="${sub}">${esc(left)}</text>`);
-  parts.push(`<text x="${W - pad}" y="${H - pad}" font-size="${footFs}" font-weight="600" text-anchor="end" fill="${sub}">${esc(req.theme)} · ${W}×${H}</text>`);
-  parts.push(`</svg>`);
-  return parts.join('\n');
-}
+const FB_SIZES = ['1200x630', '1200x1200', '1080x1350', '1080x1920', '1640x624'];
+const sizeOrder = [...FB_SIZES, ...Object.keys(SIZES).filter((s) => !FB_SIZES.includes(s))];
 
 function currentRequest() {
   return {
-    title: $('title').value.trim() || 'Yêu cầu hình',
+    title: $('title').value.trim(),
     subtitle: $('subtitle').value.trim(),
     author: $('author').value.trim(),
     footer: $('footer').value.trim(),
     theme: state.theme,
     size: state.size,
+    layout: state.layout,
   };
 }
 
-function redraw() { $('preview').innerHTML = buildSVG(currentRequest()); }
-
-// bảng màu + kích thước
-const sw = $('swatches');
-for (const name of Object.keys(THEMES)) {
-  const b = document.createElement('button');
-  b.className = 'swatch' + (name === state.theme ? ' active' : '');
-  b.title = name;
-  b.style.background = `linear-gradient(135deg, ${THEMES[name][0]}, ${THEMES[name][1]})`;
-  b.onclick = () => {
-    state.theme = name;
-    [...sw.children].forEach((c) => c.classList.remove('active'));
-    b.classList.add('active');
-    redraw();
-  };
-  sw.appendChild(b);
-}
-const sz = $('sizes');
-for (const name of Object.keys(SIZES)) {
-  const b = document.createElement('button');
-  b.className = 'size' + (name === state.size ? ' active' : '');
-  b.textContent = name;
-  b.onclick = () => {
-    state.size = name;
-    [...sz.children].forEach((c) => c.classList.remove('active'));
-    b.classList.add('active');
-    redraw();
-  };
-  sz.appendChild(b);
-}
-['title', 'subtitle', 'author', 'footer'].forEach((id) => $(id).addEventListener('input', redraw));
-redraw();
-
-// tạo issue
-$('go').onclick = () => {
-  const req = currentRequest();
-  if (!$('title').value.trim()) { $('err').style.display = 'block'; $('title').focus(); return; }
-  $('err').style.display = 'none';
-  const repo = document.body.dataset.repo;
-  if (!repo) { alert('Chưa cấu hình repo (data-repo).'); return; }
-  const body = [
+function bodyOf(req) {
+  return [
     `Tiêu đề: ${req.title}`,
     req.subtitle && `Phụ đề: ${req.subtitle}`,
     req.author && `Tác giả: ${req.author}`,
     `Kích thước: ${req.size}`,
     `Theme: ${req.theme}`,
+    `Bố cục: ${req.layout}`,
     req.footer && `Chú thích: ${req.footer}`,
   ].filter(Boolean).join('\n');
-  const url = `https://github.com/${repo}/issues/new` +
-    `?title=${encodeURIComponent('[render] ' + req.title)}` +
-    `&body=${encodeURIComponent(body)}`;
-  window.open(url, '_blank', 'noopener');
+}
+
+function redraw() {
+  const req = currentRequest();
+  $('preview').innerHTML = buildSVG({ ...req, title: req.title || 'Yêu cầu hình' });
+}
+
+function showErr(msg) { const e = $('err'); e.textContent = '❗ ' + msg; e.style.display = 'block'; $('ok').style.display = 'none'; }
+function showOk(msg) { const o = $('ok'); o.textContent = msg; o.style.display = 'block'; $('err').style.display = 'none'; }
+
+// ---------- UI: mẫu màu / bố cục / kích thước ----------
+const sw = $('swatches');
+for (const name of Object.keys(THEMES)) {
+  const b = document.createElement('button');
+  b.className = 'swatch' + (name === state.theme ? ' active' : '');
+  b.title = name;
+  b.type = 'button';
+  b.style.background = `linear-gradient(135deg, ${THEMES[name].from}, ${THEMES[name].to})`;
+  b.onclick = () => { state.theme = name; [...sw.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); redraw(); };
+  sw.appendChild(b);
+}
+const lc = $('layouts');
+for (const [key, label] of Object.entries(LAYOUTS)) {
+  const b = document.createElement('button');
+  b.className = 'chip' + (key === state.layout ? ' active' : '');
+  b.type = 'button';
+  b.textContent = label;
+  b.onclick = () => { state.layout = key; [...lc.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); redraw(); };
+  lc.appendChild(b);
+}
+const sz = $('sizes');
+for (const key of sizeOrder) {
+  const b = document.createElement('button');
+  b.className = 'chip' + (key === state.size ? ' active' : '');
+  b.type = 'button';
+  b.textContent = `${SIZE_LABELS[key] || key} · ${key}`;
+  b.onclick = () => { state.size = key; [...sz.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); redraw(); };
+  sz.appendChild(b);
+}
+['title', 'subtitle', 'author', 'footer'].forEach((id) => $(id).addEventListener('input', redraw));
+redraw();
+
+// ---------- đăng nhập PAT ----------
+function session() {
+  try {
+    state.token = localStorage.getItem('hinh_gh_token');
+    state.user = JSON.parse(localStorage.getItem('hinh_gh_user') || 'null');
+  } catch { state.token = null; state.user = null; }
+  const logged = !!(state.token && state.user);
+  if (logged) {
+    $('loginName').textContent = state.user.login;
+    $('avatar').src = state.user.avatar_url || '';
+    $('avatar').alt = state.user.login;
+  }
+  $('authAnonymous').style.display = logged ? 'none' : 'flex';
+  $('authLogged').style.display = logged ? 'flex' : 'none';
+  $('mineBtn').style.display = logged ? '' : 'none';
+  $('goHint').textContent = logged
+    ? `Đã đăng nhập ${state.user.login} — yêu cầu được tạo thẳng qua API (không rời trang).`
+    : 'Chưa đăng nhập — nút sẽ mở trang tạo issue của GitHub. Dán PAT ở trên để tạo ngay tại đây.';
+  renderGallery();
+}
+
+async function login() {
+  const token = $('pat').value.trim();
+  if (!token) { showErr('Dán PAT trước đã.'); return; }
+  const btn = $('login'); btn.disabled = true; btn.textContent = 'Đang xác thực…';
+  try {
+    const r = await fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } });
+    if (r.status === 401) throw new Error('Sai hoặc đã thu hồi token.');
+    if (!r.ok) throw new Error('GitHub trả lỗi ' + r.status);
+    const u = await r.json();
+    state.token = token; state.user = u;
+    localStorage.setItem('hinh_gh_token', token);
+    localStorage.setItem('hinh_gh_user', JSON.stringify({ login: u.login, avatar_url: u.avatar_url }));
+    $('pat').value = '';
+    if (!$('author').value.trim()) { $('author').value = u.login; redraw(); }
+    showOk(`✅ Đăng nhập thành công với tư cách ${u.login}`);
+    session();
+  } catch (e) {
+    showErr('Đăng nhập lỗi: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Đăng nhập';
+  }
+}
+$('login').onclick = login;
+$('pat').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+$('logout').onclick = () => {
+  localStorage.removeItem('hinh_gh_token');
+  localStorage.removeItem('hinh_gh_user');
+  state.token = null; state.user = null;
+  $('ok').style.display = 'none';
+  session();
 };
 
-// tải SVG từ bản xem trước
+// ---------- tạo yêu cầu ----------
+async function createViaApi(req) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${state.token}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title: '[render] ' + req.title, body: bodyOf(req) }),
+  });
+  if (r.status === 401 || r.status === 403) throw new Error('Token không đủ quyền (cần scope repo).');
+  if (!r.ok) throw new Error('GitHub trả lỗi ' + r.status);
+  return r.json();
+}
+
+function openIssuePage(req) {
+  const url = `https://github.com/${REPO}/issues/new` +
+    `?title=${encodeURIComponent('[render] ' + req.title)}` +
+    `&body=${encodeURIComponent(bodyOf(req))}`;
+  window.open(url, '_blank', 'noopener');
+}
+
+async function pollForResult(issueNumber, seen) {
+  for (let i = 0; i < 25; i++) {
+    await new Promise((r) => setTimeout(r, 6000));
+    try {
+      const m = await (await fetch(`gallery/manifest.json?t=${Date.now()}`)).json();
+      const found = (m.images || []).find((img) => String(img.issue) === String(issueNumber) && !seen.has(img.file));
+      if (found) {
+        showOk(`✅ Ảnh đã xong: ${found.file}`);
+        await loadGallery();
+        return;
+      }
+      const mine = (m.images || []).filter((img) => !seen.has(img.file));
+      if (mine.length) { await loadGallery(); }
+    } catch { /* thử lại */ }
+  }
+  showErr('Chưa thấy ảnh sau ~2.5 phút — kiểm tra tab Actions của repo.');
+}
+
+$('go').onclick = async () => {
+  const req = currentRequest();
+  if (!req.title) { showErr('Nhập tiêu đề trước đã.'); $('title').focus(); return; }
+  const btn = $('go'); btn.disabled = true;
+  try {
+    if (state.token && state.user) {
+      const before = new Set(state.images.map((i) => i.file));
+      const issue = await createViaApi(req);
+      showOk(`Đã tạo issue #${issue.number} — đang chờ Actions render (~30s)…`);
+      pollForResult(issue.number, before);
+    } else {
+      openIssuePage(req);
+      showOk('Đã mở trang tạo issue — bấm *Submit new issue* là Actions chạy.');
+    }
+  } catch (e) {
+    showErr('Tạo yêu cầu lỗi: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 $('dl').onclick = () => {
-  const svg = buildSVG(currentRequest());
+  const svg = buildSVG({ ...currentRequest(), title: currentRequest().title || 'Yêu cầu hình' });
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -262,20 +355,43 @@ $('dl').onclick = () => {
   URL.revokeObjectURL(a.href);
 };
 
-// gallery
-fetch('gallery/manifest.json')
-  .then((r) => { if (!r.ok) throw 0; return r.json(); })
-  .then((m) => {
-    const g = $('gallery');
-    const items = (m.images || []).slice(0, 24);
-    if (!items.length) throw 0;
-    g.innerHTML = items.map((i) => `
-      <a href="gallery/${encodeURIComponent(i.file)}" target="_blank" title="${esc(i.title)}">
-        <img src="gallery/${encodeURIComponent(i.file)}" alt="${esc(i.title)}" loading="lazy" />
-        <div class="meta">${esc(i.title)}</div>
-      </a>`).join('');
-  })
-  .catch(() => { $('gallery').innerHTML = '<p class="empty">Chưa có hình nào — hãy tạo yêu cầu đầu tiên ☝️</p>'; });
+// ---------- gallery ----------
+async function loadGallery() {
+  try {
+    const m = await (await fetch(`gallery/manifest.json?t=${Date.now()}`)).json();
+    state.images = m.images || [];
+    renderGallery();
+  } catch {
+    $('gallery').innerHTML = '<p class="empty">Chưa có hình nào — hãy tạo yêu cầu đầu tiên ☝️</p>';
+  }
+}
+
+function renderGallery() {
+  const g = $('gallery');
+  let items = state.images.slice(0, 36);
+  if (state.filter === 'mine' && state.user) items = items.filter((i) => i.user === state.user.login);
+  if (!items.length) {
+    g.innerHTML = `<p class="empty">${state.filter === 'mine' ? 'Bạn chưa có hình nào trong gallery.' : 'Chưa có hình nào — hãy tạo yêu cầu đầu tiên ☝️'}</p>`;
+    return;
+  }
+  g.innerHTML = items.map((i) => `
+    <a href="gallery/${encodeURIComponent(i.file)}" target="_blank" title="${esc(i.title)}">
+      <img src="gallery/${encodeURIComponent(i.file)}" alt="${esc(i.title)}" loading="lazy" />
+      <div class="meta">${esc(i.title)}${i.user ? ` · ${esc(i.user)}` : ''}</div>
+    </a>`).join('');
+}
+
+document.querySelectorAll('.gbar [data-filter]').forEach((b) => {
+  b.onclick = () => {
+    state.filter = b.dataset.filter;
+    document.querySelectorAll('.gbar [data-filter]').forEach((c) => c.classList.toggle('active', c === b));
+    renderGallery();
+  };
+});
+$('refreshBtn').onclick = loadGallery;
+
+session();
+loadGallery();
 </script>
 </body>
 </html>

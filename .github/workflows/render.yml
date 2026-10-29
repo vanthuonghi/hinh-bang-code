@@ -1,20 +1,58 @@
 name: Render hình
 
+# Hai cổng kích hoạt:
+#  1. Issue có tiền tố [render]  → trang tĩnh / người dùng GitHub
+#  2. workflow_dispatch (API/CLI) → Hermes, script, CI — gọi qua REST:
+#     POST /repos/{owner}/{repo}/actions/workflows/render.yml/dispatches
 on:
   issues:
     types: [opened]
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Tiêu đề hình (bắt buộc)'
+        required: true
+        type: string
+      subtitle:
+        description: 'Phụ đề'
+        required: false
+        type: string
+      author:
+        description: 'Tác giả / nhãn'
+        required: false
+        type: string
+      size:
+        description: 'Kích thước (1200x630, 1200x1200, 1080x1350, 1080x1920, 1640x624, 1080x1080, 1920x1080, 800x800)'
+        required: false
+        default: '1200x630'
+        type: string
+      theme:
+        description: 'Bảng màu (sunset, ocean, forest, midnight, violet, paper, coral, mint, sand, ink, aurora, rose)'
+        required: false
+        default: 'sunset'
+        type: string
+      layout:
+        description: 'Bố cục (left, center, quote)'
+        required: false
+        default: 'left'
+        type: string
+      footer:
+        description: 'Chú thích góc dưới'
+        required: false
+        type: string
 
 permissions:
   contents: write
   issues: write
 
 concurrency:
-  group: render-${{ github.event.issue.number }}
+  group: render-${{ github.event_name == 'issues' && github.event.issue.number || github.run_id }}
 
 jobs:
   render:
-    # Chỉ chạy với issue có tiền tố [render] (trang tĩnh tự thêm tiền tố này)
-    if: startsWith(github.event.issue.title, '[render]')
+    # Chỉ chạy với issue có tiền tố [render] (trang tĩnh tự thêm tiền tố này);
+    # workflow_dispatch luôn chạy.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, '[render]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,15 +74,56 @@ jobs:
           sudo apt-get install -y -qq fonts-noto-core
           fc-cache -f >/dev/null 2>&1 || true
 
-      - name: Render ảnh từ yêu cầu
-        id: render
+      - name: Chuẩn bị yêu cầu
         env:
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT: ${{ github.event_name }}
+          I_TITLE: ${{ github.event.issue.title }}
+          I_BODY: ${{ github.event.issue.body }}
+          I_ISSUE_NO: ${{ github.event.issue.number }}
+          I_ISSUE_USER: ${{ github.event.issue.user.login }}
+          I_ACTOR: ${{ github.actor }}
+          D_TITLE: ${{ inputs.title }}
+          D_SUB: ${{ inputs.subtitle }}
+          D_AUTHOR: ${{ inputs.author }}
+          D_SIZE: ${{ inputs.size }}
+          D_THEME: ${{ inputs.theme }}
+          D_LAYOUT: ${{ inputs.layout }}
+          D_FOOTER: ${{ inputs.footer }}
         run: |
           set -euo pipefail
-          node render.mjs | tee -a "$GITHUB_OUTPUT"
+          EOFMARK='__REQ_BODY_EOF__'
+          if [ "$EVENT" = "issues" ]; then
+            echo "REQ_TITLE=$I_TITLE" >> "$GITHUB_ENV"
+            {
+              echo "REQ_BODY<<$EOFMARK"
+              printf '%s\n' "$I_BODY"
+              echo "$EOFMARK"
+            } >> "$GITHUB_ENV"
+            echo "REQ_ISSUE=$I_ISSUE_NO" >> "$GITHUB_ENV"
+            echo "GH_USER=$I_ISSUE_USER" >> "$GITHUB_ENV"
+          else
+            echo "REQ_TITLE=[render] $D_TITLE" >> "$GITHUB_ENV"
+            {
+              echo "REQ_BODY<<$EOFMARK"
+              echo "Tiêu đề: $D_TITLE"
+              if [ -n "${D_SUB:-}" ]; then echo "Phụ đề: $D_SUB"; fi
+              if [ -n "${D_AUTHOR:-}" ]; then echo "Tác giả: $D_AUTHOR"; fi
+              if [ -n "${D_SIZE:-}" ]; then echo "Kích thước: $D_SIZE"; fi
+              if [ -n "${D_THEME:-}" ]; then echo "Theme: $D_THEME"; fi
+              if [ -n "${D_LAYOUT:-}" ]; then echo "Bố cục: $D_LAYOUT"; fi
+              if [ -n "${D_FOOTER:-}" ]; then echo "Chú thích: $D_FOOTER"; fi
+              echo "$EOFMARK"
+            } >> "$GITHUB_ENV"
+            echo "REQ_ISSUE=" >> "$GITHUB_ENV"
+            echo "GH_USER=$I_ACTOR" >> "$GITHUB_ENV"
+          fi
+
+      - name: Render ảnh từ yêu cầu
+        id: render
+        run: |
+          set -euo pipefail
+          ISSUE_TITLE="$REQ_TITLE" ISSUE_BODY="$REQ_BODY" ISSUE_NUMBER="$REQ_ISSUE" \
+            node render.mjs | tee -a "$GITHUB_OUTPUT"
 
       - name: Commit ảnh vào gallery/
         run: |
@@ -55,11 +134,27 @@ jobs:
           if git diff --cached --quiet; then
             echo "Không có file mới để commit"
           else
-            git commit -m "render #${{ github.event.issue.number }}"
+            git commit -m "render #${{ github.event.issue.number || github.run_id }}"
             git push
           fi
 
+      - name: Ghi kết quả vào run summary
+        if: steps.render.outcome == 'success'
+        env:
+          PNG: ${{ steps.render.outputs.PNG }}
+          SVG: ${{ steps.render.outputs.SVG }}
+          TITLE: ${{ steps.render.outputs.TITLE }}
+        run: |
+          {
+            echo "### ✅ Đã render: ${TITLE}"
+            echo ""
+            echo "![](https://github.com/${{ github.repository }}/raw/main/${PNG})"
+            echo ""
+            echo "[Tải PNG](https://github.com/${{ github.repository }}/raw/main/${PNG}) · [Xem SVG](https://github.com/${{ github.repository }}/raw/main/${SVG})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Báo kết quả lên issue
+        if: github.event_name == 'issues'
         uses: actions/github-script@v9
         env:
           PNG: ${{ steps.render.outputs.PNG }}
@@ -84,7 +179,7 @@ jobs:
             });
 
       - name: Báo lỗi lên issue nếu render thất bại
-        if: failure()
+        if: failure() && github.event_name == 'issues'
         uses: actions/github-script@v9
         with:
           script: |
