@@ -1,6 +1,6 @@
 # 🎨 Sinh hình bằng code
 
-Trang tĩnh nhập yêu cầu hình → **GitHub Actions tự render ảnh** (SVG → PNG) và trả kết quả ngay trong issue. Có **API + CLI cho agent (Hermes)**, 12 bảng màu, 8 kích thước (đủ size Facebook), 3 bố cục, đăng nhập PAT tùy chọn.
+Trang tĩnh nhập yêu cầu hình → **GitHub Actions tự render ảnh** (SVG → PNG) và trả kết quả ngay trong issue. Có **API + CLI cho agent (Hermes)**, 18 bảng màu, 12 kích thước (đủ size Facebook + LinkedIn/YouTube/Pinterest), 9 bố cục, 6 mẫu có sẵn, đăng nhập PAT tùy chọn.
 
 ## Cách hoạt động
 
@@ -24,7 +24,7 @@ Không cần API key AI, không cần server — chỉ dùng GitHub Actions mi�
 ## Dùng trên trang
 
 1. Mở <https://vanthuonghi.github.io/hinh-bang-code/> (hoặc `index.html` local).
-2. Nhập tiêu đề / phụ đề, chọn **bảng màu (12)**, **bố cục (3)**, **kích thước (8, Facebook đứng đầu)**.
+2. Nhập tiêu đề / phụ đề, chọn **bảng màu (18)**, **bố cục (9)**, **kích thước (12, Facebook đứng đầu)** — hoặc bấm nhanh 1 trong **6 mẫu có sẵn**.
 3. Bấm **Tạo yêu cầu trên GitHub** → Actions render ~30s → ảnh nằm trong [`gallery/`](gallery/).
 4. *Tùy chọn — đăng nhập*: dán PAT (scope `repo`) 1 lần → trang tạo issue thẳng bằng API, không rời trang, và có nút **Của tôi** lọc gallery theo user. Token chỉ nằm trong `localStorage` của trình duyệt, không gửi đi đâu khác `api.github.com`.
 
@@ -37,10 +37,17 @@ Không cần API key AI, không cần server — chỉ dùng GitHub Actions mi�
 | `1080x1350` | Feed dọc 4:5 (FB/IG) |
 | `1080x1920` | Story / Reel |
 | `1640x624` | Bìa trang Facebook (cover) |
+| `1200x628` | Bài LinkedIn / X |
+| `1280x720` | Thumbnail YouTube |
+| `1000x1500` | Pinterest (2:3) |
+| `800x1000` | Share dọc (Zalo / Messenger) |
 | `1080x1080`, `1920x1080`, `800x800` | Vuông, slide 16:9, nhỏ |
 
-**Bảng màu:** `sunset`, `ocean`, `forest`, `midnight`, `violet`, `paper`, `coral`, `mint`, `sand`, `ink`, `aurora`, `rose`
-**Bố cục:** `left` (mặc định), `center` (căn giữa), `quote` (thẻ quote có dấu “ và tên tác giả)
+**Bảng màu (18):** `sunset`, `ocean`, `forest`, `midnight`, `violet`, `paper`, `coral`, `mint`, `sand`, `ink`, `aurora`, `rose`, `citrus`, `steel`, `grape`, `blush`, `blueprint`, `clay`
+
+**Bố cục (9):** `left` (mặc định) · `center` (căn giữa) · `quote` (thẻ quote) · `split` (chữ trái + khối màu phải) · `list` (danh sách đánh số) · `number` (số lớn kiểu infographic) · `sticker` (thẻ viền đậm + nhãn xoay góc) · `terminal` (khung terminal) · `story` (progress bar + avatar)
+
+**Mẫu có sẵn:** 6 combo màu × bố cục × kích thước, bấm một cái là áp ngay trên trang — dữ liệu nằm ở `PRESETS` trong [lib/svg.js](lib/svg.js).
 
 ## Cho agent / CLI (Hermes)
 
@@ -105,12 +112,21 @@ gh issue create --repo OWNER/REPO --title "[render] Tiêu đề hình" \
 | [lib/svg.js](lib/svg.js) | **Thư viện SVG dùng chung** — màu, kích thước, bố cục, parse yêu cầu. Trang và Actions đều import file này nên xem trước khớp bản render |
 | [render.mjs](render.mjs) | Nhập yêu cầu (issue/dispatch) → sinh PNG bằng `sharp`, giữ `gallery/manifest.json` |
 | [bin/hinh.mjs](bin/hinh.mjs) | CLI cho agent/người dùng terminal |
+| [test/svg.test.js](test/svg.test.js) | **Test hồi quy** — ma trận 18×12×9 không đè footer, escape XML, parse yêu cầu, preset hợp lệ |
 | [.github/workflows/render.yml](.github/workflows/render.yml) | 2 cổng kích hoạt: `issues` (có tiền tố `[render]`) và `workflow_dispatch` |
 | `gallery/` | Kho ảnh (commit tự động bởi Actions) |
+
+## Test hồi quy
+
+```bash
+npm test          # node --test — 8 test, quét toàn bộ ma trận bố cục
+```
+
+Test chính là **tấm đai chống tràn**: mọi tổ hợp màu × kích thước × bố cục phải nằm trong vùng an toàn, không đè dải footer. Workflow render cũng chạy `npm test` trước khi render — layout hỏng không tới lượt commit.
 
 ## Cấu hình
 
 - **Tên repo**: sửa `data-repo="OWNER/TEN-REPO"` ở thẻ `<body>` trong `index.html`.
-- **Thêm mẫu**: thêm key vào `THEMES` / `SIZES` / `LAYOUTS` trong `lib/svg.js` — trang tự hiện mục mới (UI dựng từ map), chỉ cần thêm mô tả trong `SIZE_LABELS`/`LAYOUTS` nếu muốn nhãn tiếng Việt.
+- **Thêm mẫu**: thêm key vào `THEMES` / `SIZES` / `LAYOUTS` trong `lib/svg.js` — trang tự hiện mục mới (UI dựng từ map), chỉ cần thêm nhãn trong `SIZE_LABELS`/`LAYOUTS` nếu muốn chữ tiếng Việt. Thêm `PRESETS` nếu muốn combo mẫu. **Rồi chạy `npm test`** để ma trận tự kiểm lại.
 - **Chặn người lạ dùng Actions**: thêm điều kiện user vào `if:` của job trong workflow.
 - **Font**: workflow cài `fonts-noto-core` để dấu tiếng Việt hiển thị đủ khi render trên Actions.

@@ -71,7 +71,7 @@
   .empty { color: var(--muted); font-size: 14px; }
 </style>
 </head>
-<body data-repo="vanthuonghi/hinh-bang-code" data-oauth-client="">
+<body data-repo="vanthuonghi/hinh-bang-code">
 <div class="wrap">
   <header>
     <h1>🎨 Sinh hình bằng code</h1>
@@ -101,13 +101,16 @@
       <label for="author">Tác giả / nhãn (dòng nhỏ trên cùng)</label>
       <input type="text" id="author" placeholder="Ví dụ: VANHI" maxlength="40" />
 
-      <label>Bảng màu (12 mẫu)</label>
+      <label id="presetsLabel">Mẫu có sẵn (bấm một cái là ra bộ này)</label>
+      <div class="chips" id="presets"></div>
+
+      <label id="themesLabel">Bảng màu</label>
       <div class="swatches" id="swatches"></div>
 
-      <label>Bố cục</label>
+      <label id="layoutsLabel">Bố cục</label>
       <div class="chips" id="layouts"></div>
 
-      <label>Kích thước (Facebook trước)</label>
+      <label id="sizesLabel">Kích thước (Facebook trước)</label>
       <div class="chips" id="sizes"></div>
 
       <label for="footer">Chú thích góc dưới (tùy chọn)</label>
@@ -156,7 +159,7 @@ node bin/hinh.mjs get &lt;tên-file.png&gt; --out ./anh</pre>
 </div>
 
 <script type="module">
-import { THEMES, SIZES, SIZE_LABELS, LAYOUTS, buildSVG, parseRequest } from './lib/svg.js';
+import { THEMES, SIZES, SIZE_LABELS, LAYOUTS, PRESETS, buildSVG, parseRequest } from './lib/svg.js';
 
 const REPO = document.body.dataset.repo;
 const $ = (id) => document.getElementById(id);
@@ -164,7 +167,9 @@ const state = { theme: 'sunset', size: '1200x630', layout: 'left', filter: 'all'
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
 const FB_SIZES = ['1200x630', '1200x1200', '1080x1350', '1080x1920', '1640x624'];
-const sizeOrder = [...FB_SIZES, ...Object.keys(SIZES).filter((s) => !FB_SIZES.includes(s))];
+const SOCIAL_SIZES = ['1200x628', '1280x720', '1000x1500', '800x1000'];   // LinkedIn, YouTube, Pinterest, share dọc
+const front = [...FB_SIZES, ...SOCIAL_SIZES];
+const sizeOrder = [...front, ...Object.keys(SIZES).filter((s) => !front.includes(s))];
 
 function currentRequest() {
   return {
@@ -199,34 +204,72 @@ function showErr(msg) { const e = $('err'); e.textContent = '❗ ' + msg; e.styl
 function showOk(msg) { const o = $('ok'); o.textContent = msg; o.style.display = 'block'; $('err').style.display = 'none'; }
 
 // ---------- UI: mẫu màu / bố cục / kích thước ----------
+// chọn + đồng bộ active cho 3 nhóm và preset (preset khớp combo mới được tô)
+function markActive(containerId, value) {
+  [...$(containerId).children].forEach((c) => c.classList.toggle('active', c.dataset.k === value));
+}
+function syncActive() {
+  markActive('swatches', state.theme);
+  markActive('layouts', state.layout);
+  markActive('sizes', state.size);
+  [...$('presets').children].forEach((c) => {
+    const p = PRESETS.find((q) => q.key === c.dataset.k);
+    c.classList.toggle('active', !!p && p.theme === state.theme && p.layout === state.layout && p.size === state.size);
+  });
+}
+function setTheme(name) { state.theme = name; syncActive(); redraw(); }
+function setLayout(key) { state.layout = key; syncActive(); redraw(); }
+function setSize(key)   { state.size = key;   syncActive(); redraw(); }
+
 const sw = $('swatches');
 for (const name of Object.keys(THEMES)) {
   const b = document.createElement('button');
-  b.className = 'swatch' + (name === state.theme ? ' active' : '');
+  b.className = 'swatch';
+  b.dataset.k = name;
   b.title = name;
   b.type = 'button';
+  b.setAttribute('aria-label', `Bảng màu ${name}`);
   b.style.background = `linear-gradient(135deg, ${THEMES[name].from}, ${THEMES[name].to})`;
-  b.onclick = () => { state.theme = name; [...sw.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); redraw(); };
+  b.onclick = () => setTheme(name);
   sw.appendChild(b);
 }
 const lc = $('layouts');
 for (const [key, label] of Object.entries(LAYOUTS)) {
   const b = document.createElement('button');
-  b.className = 'chip' + (key === state.layout ? ' active' : '');
+  b.className = 'chip';
+  b.dataset.k = key;
   b.type = 'button';
   b.textContent = label;
-  b.onclick = () => { state.layout = key; [...lc.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); redraw(); };
+  b.onclick = () => setLayout(key);
   lc.appendChild(b);
 }
 const sz = $('sizes');
 for (const key of sizeOrder) {
   const b = document.createElement('button');
-  b.className = 'chip' + (key === state.size ? ' active' : '');
+  b.className = 'chip';
+  b.dataset.k = key;
   b.type = 'button';
   b.textContent = `${SIZE_LABELS[key] || key} · ${key}`;
-  b.onclick = () => { state.size = key; [...sz.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); redraw(); };
+  b.onclick = () => setSize(key);
   sz.appendChild(b);
 }
+const pc = $('presets');
+for (const pr of PRESETS) {
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.dataset.k = pr.key;
+  b.type = 'button';
+  b.textContent = pr.label;
+  b.title = `${pr.theme} · ${pr.layout} · ${pr.size}`;
+  b.onclick = () => { setTheme(pr.theme); setLayout(pr.layout); setSize(pr.size); showOk(`Đã áp mẫu “${pr.label}”`); };
+  pc.appendChild(b);
+}
+// nhãn đếm tự động theo map nên không cần sửa tay khi thêm mẫu
+$('themesLabel').textContent = `Bảng màu (${Object.keys(THEMES).length} mẫu)`;
+$('layoutsLabel').textContent = `Bố cục (${Object.keys(LAYOUTS).length} mẫu)`;
+$('sizesLabel').textContent = `Kích thước (${Object.keys(SIZES).length} — Facebook trước)`;
+$('presetsLabel').textContent = `Mẫu có sẵn (${PRESETS.length} — bấm một cái)`;
+syncActive();
 ['title', 'subtitle', 'author', 'footer'].forEach((id) => $(id).addEventListener('input', redraw));
 redraw();
 
@@ -368,8 +411,11 @@ async function loadGallery() {
 
 function renderGallery() {
   const g = $('gallery');
-  let items = state.images.slice(0, 36);
+  // lọc TRƯỚC khi cắt: nếu cắt trước thì mục "Của tôi" có thể hiện trống giả
+  // khi ảnh của bạn nằm sau 36 phần tử đầu của manifest (giữ 96)
+  let items = state.images;
   if (state.filter === 'mine' && state.user) items = items.filter((i) => i.user === state.user.login);
+  items = items.slice(0, 36);
   if (!items.length) {
     g.innerHTML = `<p class="empty">${state.filter === 'mine' ? 'Bạn chưa có hình nào trong gallery.' : 'Chưa có hình nào — hãy tạo yêu cầu đầu tiên ☝️'}</p>`;
     return;

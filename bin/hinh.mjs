@@ -83,8 +83,12 @@ async function waitRender(startISO, tok) {
   const deadline = Date.now() + 5 * 60 * 1000;
   let run = null;
   while (Date.now() < deadline) {
-    const runs = await api(`/repos/${REPO}/actions/workflows/render.yml/runs?event=workflow_dispatch&per_page=10`, { tok });
-    run = (runs.workflow_runs || []).find((r) => new Date(r.created_at) >= new Date(startISO));
+    const runs = await api(`/repos/${REPO}/actions/workflows/render.yml/runs?event=workflow_dispatch&per_page=20`, { tok });
+    // GitHub trả về mới nhất trước; chạy song song phải lấy run CŨ NHẤT tạo
+    // sau thời điểm dispatch của mình, nếu không sẽ theo nhầm run của agent khác.
+    run = (runs.workflow_runs || [])
+      .filter((r) => new Date(r.created_at) >= new Date(startISO))
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0] || null;
     if (run && run.status === 'completed') return run;
     await new Promise((r) => setTimeout(r, 6000));
   }
@@ -125,7 +129,11 @@ async function newImage() {
   if (run.conclusion !== 'success') die(`Run kết thúc: ${run.conclusion}`, { run_id: run.id, url: run.html_url });
 
   const m = await manifest(tok);
-  const img = (m.images || []).find((i) => new Date(i.date) >= new Date(started));
+  const fresh = (m.images || []).filter((i) => new Date(i.date) >= new Date(started));
+  // Ưu tiên entry đúng TIÊU ĐỀ mình vừa gửi: nhiều run song song thì entry mới
+  // nhất chưa chắc là của mình.
+  const want = String(args.title).replace(/^\s*\[render\]\s*/i, '').trim();
+  const img = fresh.find((i) => String(i.title).trim() === want) || fresh[0];
   if (!img) die('Run thành công nhưng không thấy entry mới trong manifest.', { run_id: run.id });
   const rawUrl = `https://github.com/${REPO}/raw/main/gallery/${img.file}`;
 

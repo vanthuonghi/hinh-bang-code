@@ -22,17 +22,17 @@ on:
         required: false
         type: string
       size:
-        description: 'Kích thước (1200x630, 1200x1200, 1080x1350, 1080x1920, 1640x624, 1080x1080, 1920x1080, 800x800)'
+        description: 'Khóa kích thước (vd 1200x630, 1080x1350, 1640x624, 1280x720) — xem SIZE_LABELS'
         required: false
         default: '1200x630'
         type: string
       theme:
-        description: 'Bảng màu (sunset, ocean, forest, midnight, violet, paper, coral, mint, sand, ink, aurora, rose)'
+        description: 'Bảng màu (vd sunset, aurora, ink, citrus, steel) — xem THEMES'
         required: false
         default: 'sunset'
         type: string
       layout:
-        description: 'Bố cục (left, center, quote)'
+        description: 'Bố cục: left, center, quote, split, list, number, sticker, terminal, story'
         required: false
         default: 'left'
         type: string
@@ -45,8 +45,12 @@ permissions:
   contents: write
   issues: write
 
+# Serialize MỌI run render: hai run song song cùng `git push` sẽ fail
+# non-fast-forward và cùng ghi manifest.json làm mất entry (last-writer-wins).
+# cancel-in-progress: false → các run xếp hàng chờ nhau thay vì đè nhau.
 concurrency:
-  group: render-${{ github.event_name == 'issues' && github.event.issue.number || github.run_id }}
+  group: render
+  cancel-in-progress: false
 
 jobs:
   render:
@@ -66,6 +70,10 @@ jobs:
 
       - name: Cài dependency
         run: npm ci --no-audit --no-fund
+
+      # Tấm đai: layout hỏng không được phép tới lượt render/commit
+      - name: Chạy test hồi quy layout
+        run: npm test
 
       - name: Cài font hỗ trợ tiếng Việt (Noto Sans)
         run: |
@@ -135,6 +143,8 @@ jobs:
             echo "Không có file mới để commit"
           else
             git commit -m "render #${{ github.event.issue.number || github.run_id }}"
+            # phòng hờ nếu có commit khác lọt vào giữa (concurrency đã serialize phần lớn)
+            git pull --rebase origin "${{ github.event.repository.default_branch }}"
             git push
           fi
 
