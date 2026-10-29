@@ -1,6 +1,17 @@
 {
-  "generated": "2026-10-29T02:48:05.301Z",
+  "generated": "2026-10-29T02:53:02.938Z",
   "images": [
+    {
+      "file": "test-cli-goi-tu-hermes-20261029025302.png",
+      "svg": "test-cli-goi-tu-hermes-20261029025302.svg",
+      "title": "Test CLI gọi từ Hermes",
+      "theme": "aurora",
+      "layout": "center",
+      "size": "1080x1350",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-10-29T02:53:02.938Z"
+    },
     {
       "file": "kiem-thu-nut-tao-yeu-cau-qua-api-20261029024805-iss5.png",
       "svg": "kiem-thu-nut-tao-yeu-cau-qua-api-20261029024805-iss5.svg",

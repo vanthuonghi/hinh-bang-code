@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-aurora-center" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2980"/><stop offset="1" stop-color="#26d0ce"/></linearGradient></defs>
+<rect width="1080" height="1350" fill="url(#g-aurora-center)"/>
+<circle cx="950.4" cy="243" r="172.8" fill="#ffffff26"/>
+<circle cx="129.6" cy="1242" r="237.6" fill="#ffffff26"/>
+<circle cx="810" cy="1147.5" r="75.60000000000001" fill="#ffffff26"/>
+<text x="540" y="616" font-size="15" font-weight="700" letter-spacing="3" text-anchor="middle" fill="#ffffffd9" opacity="0.9">HERMES</text>
+<text x="540" y="683.74" font-size="59" font-weight="800" text-anchor="middle" fill="#ffffff">Test CLI gọi từ Hermes</text>
+<text x="540" y="738.5" font-size="25" font-weight="400" text-anchor="middle" fill="#ffffffd9">Dispatch qua REST rồi tải ảnh về</text>
+<rect x="76" y="1250" width="65" height="6" fill="#ffe08a"/>
+<text x="76" y="1274" font-size="15" font-weight="600" fill="#ffffffd9">sinh bằng code · 2026-10-29</text>
+<text x="1004" y="1274" font-size="15" font-weight="600" text-anchor="end" fill="#ffffffd9">aurora · center · 1080×1350</text>
+</svg>
