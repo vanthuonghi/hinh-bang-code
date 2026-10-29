@@ -27,7 +27,7 @@ Nhánh raster trong trình duyệt **không đụng GitHub Actions**: miễn ph�
 
 ## Dùng trên trang
 
-1. Mở <https://vanthuonghi.github.io/hinh-bang-code/> (hoặc `index.html` local).
+1. Mở <https://vanthuonghi.github.io/hinh-bang-code/>. Muốn chạy local thì serve thư mục repo (`npx serve` hoặc `python3 -m http.server`) rồi mở `http://localhost:<cổng>` — **bấm đúp `index.html` không được**, trình duyệt chặn `<script type="module">` và `fetch` trên `file://` vì CORS.
 2. Nhập tiêu đề / phụ đề, chọn **bảng màu (18)**, **bố cục (9)**, **kích thước (12, Facebook đứng đầu)** — hoặc bấm nhanh 1 trong **6 mẫu có sẵn**.
 3. Bấm **⬇ Tải PNG** → ảnh render ngay trên máy bạn: **không đăng nhập, không token, không chờ** (dùng được với mọi size, không giới hạn số lượng). Nút **Tải SVG** nếu muốn mở tay trong Illustrator/Figma.
 4. *Tuỳ chọn — Lưu lên gallery GitHub*: nút **Lưu vào gallery GitHub** → Actions render ~30s → ảnh nằm trong [`gallery/`](gallery/). Dán PAT 1 lần nếu muốn tạo issue ngay tại trang và có nút **Của tôi**; token chỉ nằm trong `localStorage`, không gửi đi đâu khác `api.github.com`. Không dán PAT thì trang mở trang tạo issue của GitHub như bình thường.
