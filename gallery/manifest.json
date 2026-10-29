@@ -1,6 +1,17 @@
 {
-  "generated": "2026-10-29T02:53:02.938Z",
+  "generated": "2026-10-29T02:54:53.963Z",
   "images": [
+    {
+      "file": "test-nhanh-issue-voi-code-moi-20261029025453-iss6.png",
+      "svg": "test-nhanh-issue-voi-code-moi-20261029025453-iss6.svg",
+      "title": "Test nhánh issue với code mới",
+      "theme": "mint",
+      "layout": "center",
+      "size": "1640x624",
+      "issue": "6",
+      "user": "vanthuonghi",
+      "date": "2026-10-29T02:54:53.962Z"
+    },
     {
       "file": "test-cli-goi-tu-hermes-20261029025302.png",
       "svg": "test-cli-goi-tu-hermes-20261029025302.svg",
