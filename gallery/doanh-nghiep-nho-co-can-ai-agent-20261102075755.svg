@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-aurora-quote" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2980"/><stop offset="1" stop-color="#26d0ce"/></linearGradient></defs>
+<rect width="1080" height="1350" fill="url(#g-aurora-quote)"/>
+<circle cx="950.4" cy="243" r="172.8" fill="#ffffff26"/>
+<circle cx="129.6" cy="1242" r="237.6" fill="#ffffff26"/>
+<circle cx="810" cy="1147.5" r="75.60000000000001" fill="#ffffff26"/>
+<text x="76" y="600" font-size="85" font-weight="800" text-anchor="start" fill="#ffe08a" opacity="0.85">&#8220;</text>
+<text x="76" y="646" font-size="53" font-weight="800" text-anchor="start" fill="#ffffff">Doanh nghiệp nhỏ có cần AI</text>
+<text x="76" y="705" font-size="53" font-weight="800" text-anchor="start" fill="#ffffff">Agent?</text>
+<text x="76" y="755" font-size="22" font-weight="400" text-anchor="start" fill="#ffffffd9">Setup 1 lần, chạy mãi mãi</text>
+<rect x="76" y="1250" width="65" height="6" fill="#ffe08a"/>
+<text x="76" y="1274" font-size="15" font-weight="600" fill="#ffffffd9">sinh bằng code · 2026-11-02</text>
+<text x="1004" y="1274" font-size="15" font-weight="600" text-anchor="end" fill="#ffffffd9">aurora · quote · 1080×1350</text>
+</svg>
