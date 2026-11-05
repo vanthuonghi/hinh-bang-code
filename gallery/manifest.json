@@ -1,6 +1,17 @@
 {
-  "generated": "2026-11-05T02:13:33.062Z",
+  "generated": "2026-11-05T02:15:09.372Z",
   "images": [
+    {
+      "file": "bitcoin-vuot-80-000-usd-20261105021509.png",
+      "svg": "bitcoin-vuot-80-000-usd-20261105021509.svg",
+      "title": "Bitcoin vượt 80.000 USD",
+      "theme": "aurora",
+      "layout": "number",
+      "size": "1920x1080",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-05T02:15:09.372Z"
+    },
     {
       "file": "dang-dan-chu-gianh-quoc-hoi-my-20261105021332.png",
       "svg": "dang-dan-chu-gianh-quoc-hoi-my-20261105021332.svg",
