@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-sunset-quote" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7e5f"/><stop offset="1" stop-color="#feb47b"/></linearGradient></defs>
+<rect width="1200" height="630" fill="url(#g-sunset-quote)"/>
+<circle cx="1056" cy="113.39999999999999" r="192" fill="#ffffff38"/>
+<circle cx="144" cy="579.6" r="264" fill="#ffffff38"/>
+<circle cx="900" cy="535.5" r="84.00000000000001" fill="#ffffff38"/>
+<text x="84" y="264" font-size="94" font-weight="800" text-anchor="start" fill="#33160f" opacity="0.85">&#8220;</text>
+<text x="84" y="316" font-size="59" font-weight="800" text-anchor="start" fill="#33160f">Bỏ Thói Quen Đọc Lại</text>
+<text x="84" y="371" font-size="25" font-weight="400" text-anchor="start" fill="#33160fcc">speedreading.vn</text>
+<rect x="84" y="519" width="72" height="7" fill="#33160f"/>
+<text x="84" y="546" font-size="17" font-weight="600" fill="#33160fcc">sinh bằng code · 2026-11-05</text>
+<text x="1116" y="546" font-size="17" font-weight="600" text-anchor="end" fill="#33160fcc">sunset · quote · 1200×630</text>
+</svg>
