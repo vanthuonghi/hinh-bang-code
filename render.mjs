@@ -52,6 +52,8 @@ export async function render(req, { issueNumber = '', user = '', outDir = GALLER
       theme: req.theme,
       layout: req.layout,
       size: req.size,
+      pattern: req.pattern,
+      emoji: req.emoji || '',
       issue: issueNumber || null,
       user: user || null,
       date: new Date().toISOString(),
@@ -77,6 +79,7 @@ if (isMain) {
     console.log(`SIZE=${req.size}`);
     console.log(`THEME=${req.theme}`);
     console.log(`LAYOUT=${req.layout}`);
+    console.log(`PATTERN=${req.pattern}`);
     console.log(`URL=https://github.com/${process.env.GITHUB_REPOSITORY || 'OWNER/REPO'}/raw/main/${path.relative(ROOT, out.png)}`);
   } catch (e) {
     console.error('render failed:', e);

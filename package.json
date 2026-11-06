@@ -1,17 +1,27 @@
 {
   "name": "hinh-bang-code",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Nhập yêu cầu hình trên trang tĩnh → GitHub Actions tự render ảnh bằng code",
+  "description": "Nhập yêu cầu hình trên trang tĩnh → tải PNG ngay trong trình duyệt, hoặc GitHub Actions render và lưu gallery. Có API/CLI/agent.json cho AI agent.",
   "scripts": {
     "render": "node render.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "catalog": "node bin/catalog.mjs",
+    "catalog:check": "node bin/catalog.mjs --check",
+    "sheet": "node bin/contact-sheet.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "sharp": "^0.33.5"
-  }
+  },
+  "keywords": [
+    "svg",
+    "png",
+    "image-generation",
+    "github-actions",
+    "ai-agent"
+  ]
 }

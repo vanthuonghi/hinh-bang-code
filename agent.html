@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hướng dẫn cho AI agent — Sinh hình bằng code</title>
+<meta name="description" content="Hướng dẫn máy đọc cho agent: gọi API render ảnh qua GitHub Actions, dùng CLI hoặc thư viện JS. Kèm danh mục theme/layout/size/pattern." />
+<style>
+  :root { --bg:#0e1016; --card:#161a24; --border:#252b39; --ink:#e9ecf3; --muted:#98a1b4; --accent:#7c9cff; --accent-2:#63e0b8; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; padding:26px 20px 80px; }
+  a { color:var(--accent); }
+  h1 { font-size:28px; letter-spacing:-.6px; margin:8px 0 6px; }
+  h2 { font-size:19px; margin:38px 0 10px; letter-spacing:-.3px; }
+  h3 { font-size:15px; margin:22px 0 6px; }
+  h4 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:20px 0 8px; }
+  p, li { color:var(--muted); }
+  b, strong { color:var(--ink); }
+  code { color:var(--accent-2); font-size:13px; }
+  pre { background:#0a0d13; border:1px solid var(--border); border-radius:12px; padding:14px;
+    overflow:auto; font-size:12.5px; line-height:1.65; color:#cfd7e6;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-top:14px; }
+  .tablewrap { overflow-x:auto; border:1px solid var(--border); border-radius:12px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th,td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { background:#ffffff05; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  tr:last-child td { border-bottom:none; }
+  .top { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; font-size:13px; }
+  .pill { border:1px solid var(--border); border-radius:999px; padding:5px 11px; color:var(--muted); }
+  .note { font-size:13px; color:var(--muted); }
+  ul { padding-left:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="pill" href="./">← Trang tạo hình</a>
+    <a class="pill" href="agent.json">agent.json</a>
+    <a class="pill" href="llms.txt">llms.txt</a>
+    <a class="pill" href="https://github.com/vanthuonghi/hinh-bang-code" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+
+  <h1>Hướng dẫn cho AI agent</h1>
+  <p>Trang này viết cho <b>agent</b> (Hermes, bot, script) đọc rồi gọi luôn. Bản máy-đọc đầy đủ:
+    <a href="agent.json">agent.json</a> · bản chữ ngắn: <a href="llms.txt">llms.txt</a> · phiên bản 2.0.0.</p>
+
+  <div class="card">
+    <b>3 đường đi, chọn theo nhu cầu</b>
+    <ul>
+      <li><b>Không cần token, có ảnh ngay:</b> import <code>lib/svg.js</code> (ESM thuần, không dependency) và gọi <code>buildSVG(req)</code> → chuỗi SVG. Thêm <code>sharp</code> nếu cần PNG. Chạy được cả Node ≥ 18 và trình duyệt.</li>
+      <li><b>Có token, không cần clone repo:</b> POST <code>workflow_dispatch</code> rồi đọc <code>gallery/manifest.json</code>. Ảnh được commit công khai, URL ổn định.</li>
+      <li><b>Có repo trên máy:</b> <code>node bin/hinh.mjs new … --wait --out ./anh</code> — một lệnh là xong, in JSON khi thêm <code>--json</code>.</li>
+    </ul>
+  </div>
+
+  <h2>1. Gọi API render</h2>
+  <p>Token GitHub cần scope <code>repo</code> + <code>workflow</code>. <b>Luôn gửi <code>ref</code></b>, thiếu sẽ bị <code>422</code>.</p>
+<pre>POST https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches
+Authorization: Bearer $GITHUB_TOKEN
+Accept: application/vnd.github+json
+Content-Type: application/json
+
+{
+  "ref": "refs/heads/main",
+  "inputs": {
+    "title": "3 việc nên tự động hoá ngay",
+    "subtitle": "Việc lặp lại;Việc dễ sai;Báo cáo định kỳ",
+    "author": "VANHI",
+    "theme": "steel",
+    "layout": "list",
+    "size": "1200x628",
+    "pattern": "grid",
+    "emoji": "",
+    "footer": ""
+  }
+}</pre>
+  <p class="note">Input nào bỏ trống sẽ dùng mặc định. Enum sai → fallback im lặng về <code>sunset</code>/<code>left</code>/<code>1200x630</code>/<code>orb</code>.</p>
+
+  <h2>2. Lấy kết quả</h2>
+  <p>Manifest là nguồn sự thật, mới nhất trước, tối đa 96 mục. Đọc qua <b>Contents API</b> khi vừa dispatch xong:
+    <code>raw.githubusercontent.com</code> bị CDN cache tới ~5 phút nên dễ trả bản cũ.</p>
+<pre># bản mới nhất (khuyến nghị khi vừa dispatch)
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/vanthuonghi/hinh-bang-code/contents/gallery/manifest.json?ref=main"
+
+# bản tiện cho người đọc / ít thay đổi
+curl -s https://raw.githubusercontent.com/vanthuonghi/hinh-bang-code/main/gallery/manifest.json
+# → { "generated": "…", "images": [ { "file": "…png", "svg": "…svg", "title": "…",
+#       "theme": "steel", "layout": "list", "size": "1200x628", "pattern": "grid",
+#       "issue": null, "user": "…", "date": "…ISO…" } ] }
+
+# tải ảnh
+curl -LO https://github.com/vanthuonghi/hinh-bang-code/raw/main/gallery/&lt;file&gt;</pre>
+  <p class="note">Cách chắc chắn để biết ảnh nào của mình: ghi lại thời điểm dispatch, lọc <code>date &gt;= START</code>, rồi khớp <code>title</code> đã gửi. Đừng đoán theo mục đầu tiên — có thể là của agent khác.</p>
+
+  <h2>3. Vòng chờ bằng Node</h2>
+<pre>const REPO = 'vanthuonghi/hinh-bang-code';
+const HEAD = { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' };
+const start = new Date().toISOString();
+
+await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/render.yml/dispatches`, {
+  method: 'POST', headers: { ...HEAD, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ ref: 'refs/heads/main', inputs: { title: 'Tiêu đề', theme: 'aurora', layout: 'hero' } }),
+});
+
+for (let i = 0; i &lt; 40; i++) {
+  await new Promise((r) =&gt; setTimeout(r, 6000));
+  const runs = await (await fetch(
+    `https://api.github.com/repos/${REPO}/actions/workflows/render.yml/runs?event=workflow_dispatch&amp;per_page=20`, { headers: HEAD })).json();
+  const mine = (runs.workflow_runs || [])
+    .filter((r) =&gt; new Date(r.created_at) &gt;= new Date(start))
+    .sort((a, b) =&gt; new Date(a.created_at) - new Date(b.created_at))[0];
+  if (!mine || mine.status !== 'completed') continue;
+  if (mine.conclusion !== 'success') throw new Error('run failed: ' + mine.html_url);
+
+  // Contents API: raw.githubusercontent.com bị cache ~5 phút nên dễ đọc bản cũ
+  const gh = await (await fetch(
+    `https://api.github.com/repos/${REPO}/contents/gallery/manifest.json?ref=main`, { headers: HEAD })).json();
+  const m = JSON.parse(Buffer.from(gh.content, 'base64').toString('utf8'));
+  const img = (m.images || []).find((x) =&gt; new Date(x.date) &gt;= new Date(start) &amp;&amp; x.title === 'Tiêu đề');
+  if (img) { console.log(`https://github.com/${REPO}/raw/main/gallery/` + img.file); break; }
+}</pre>
+
+  <h2>4. Dùng thư viện trực tiếp (không cần token)</h2>
+<pre>import { buildSVG, normalize, validateRequest } from './lib/svg.js';
+
+const req = normalize({ title: 'Xin chào', theme: 'aurora', layout: 'hero', size: '1200x630' });
+const { ok, errors, warnings } = validateRequest(req);   // kiểm tra trước khi gửi
+const svg = buildSVG(req);                               // string, không side-effect
+
+// PNG: import sharp from 'sharp';
+// await sharp(Buffer.from(svg)).png().toFile('out.png');</pre>
+  <p class="note">Cùng hàm này dùng cho trang xem trước và cho Actions, nên kết quả luôn khớp nhau.</p>
+  <p><b>Không có repo trên máy?</b> Nạp thẳng file từ URL — ESM thuần, không import gì, không cần cài:</p>
+<pre>const src = await (await fetch('https://raw.githubusercontent.com/vanthuonghi/hinh-bang-code/main/lib/svg.js')).text();
+const { buildSVG, normalize, validateRequest } =
+  await import(`data:text/javascript;charset=utf-8,${encodeURIComponent(src)}`);
+
+const svg = buildSVG(normalize({ title: 'Xin chào', theme: 'aurora', layout: 'hero' }));</pre>
+
+  <h2>5. Mở issue (không cần token trên máy)</h2>
+<pre>[render] 3 việc nên tự động hoá ngay
+
+Tiêu đề: 3 việc nên tự động hoá ngay
+Phụ đề: Việc lặp lại;Việc dễ sai;Báo cáo định kỳ
+Tác giả: VANHI
+Kích thước: 1200x628
+Theme: steel
+Bố cục: list
+Hoa tiết: grid
+Chú thích: vanthuonghi.com</pre>
+  <p class="note">Chấp nhận cả khoá không dấu (<code>tieu de</code>, <code>kich thuoc</code>) và tiếng Anh (<code>title</code>, <code>size</code>).</p>
+  <p class="note">Bot trả lời bằng một comment chứa ảnh <b>và một khối JSON</b>:
+    <code>{ ok, file, svg, png_url, svg_url, title, theme, layout, size, pattern, issue, run_id, run_url }</code>
+    — agent chỉ cần parse khối đó, không phải bóc chữ trong comment.</p>
+
+  <h2>6. Danh mục giá trị hợp lệ</h2>
+  <h4>Bảng màu — <code>theme</code> (30)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th><th>Xem trước</th></tr>
+        <tr><td><code>sunset</code></td><td>Hoàng hôn</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ff7e5f,#feb47b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ocean</code></td><td>Đại dương</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#1b3a6b,#4b9fe1);vertical-align:middle"></span></td></tr>
+        <tr><td><code>forest</code></td><td>Rừng sâu</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#143d2b,#4f9d69);vertical-align:middle"></span></td></tr>
+        <tr><td><code>midnight</code></td><td>Nửa đêm</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#141428,#3b2f63);vertical-align:middle"></span></td></tr>
+        <tr><td><code>violet</code></td><td>Tím mộng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#6a3be0,#c86dd7);vertical-align:middle"></span></td></tr>
+        <tr><td><code>paper</code></td><td>Giấy cũ</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f7f4ee,#e7ded0);vertical-align:middle"></span></td></tr>
+        <tr><td><code>coral</code></td><td>San hô</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ff5f6d,#ffc371);vertical-align:middle"></span></td></tr>
+        <tr><td><code>mint</code></td><td>Bạc hà</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#0ba360,#3cba92);vertical-align:middle"></span></td></tr>
+        <tr><td><code>sand</code></td><td>Cát vàng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f5e6ca,#d9b978);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ink</code></td><td>Mực đêm</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#16181d,#3a3f4b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>aurora</code></td><td>Cực quang</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#1a2980,#26d0ce);vertical-align:middle"></span></td></tr>
+        <tr><td><code>rose</code></td><td>Hồng đào</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f953c6,#b91d73);vertical-align:middle"></span></td></tr>
+        <tr><td><code>citrus</code></td><td>Chanh cam</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffd93d,#ff8c42);vertical-align:middle"></span></td></tr>
+        <tr><td><code>steel</code></td><td>Thép xanh</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#485563,#29323c);vertical-align:middle"></span></td></tr>
+        <tr><td><code>grape</code></td><td>Nho chín</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#7048e8,#b197fc);vertical-align:middle"></span></td></tr>
+        <tr><td><code>blush</code></td><td>Má hồng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffe5ec,#ffc2d1);vertical-align:middle"></span></td></tr>
+        <tr><td><code>blueprint</code></td><td>Bản vẽ kỹ thuật</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#0f2027,#2c5364);vertical-align:middle"></span></td></tr>
+        <tr><td><code>clay</code></td><td>Đất nung</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#c79081,#dfa579);vertical-align:middle"></span></td></tr>
+        <tr><td><code>galaxy</code></td><td>Dải ngân hà</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#10122b,#5b2c83);vertical-align:middle"></span></td></tr>
+        <tr><td><code>eclipse</code></td><td>Nhật thực</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#0b0f19,#2a1b4d);vertical-align:middle"></span></td></tr>
+        <tr><td><code>lagoon</code></td><td>Vũng ngọc</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#00b4db,#0083b0);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ember</code></td><td>Than hồng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#2b0a0a,#b33c1a);vertical-align:middle"></span></td></tr>
+        <tr><td><code>cocoa</code></td><td>Ca cao</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#3e2723,#8d6e63);vertical-align:middle"></span></td></tr>
+        <tr><td><code>sakura</code></td><td>Anh đào</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffe3ef,#ffb3cd);vertical-align:middle"></span></td></tr>
+        <tr><td><code>peach</code></td><td>Đào mật</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffc3a0,#ff9db6);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ice</code></td><td>Băng giá</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#e3ecfb,#b6ccf7);vertical-align:middle"></span></td></tr>
+        <tr><td><code>lemon</code></td><td>Chanh vàng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f6f3a8,#e0d24a);vertical-align:middle"></span></td></tr>
+        <tr><td><code>moss</code></td><td>Rêu xanh</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#22361a,#7ba05b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>noir</code></td><td>Đen tuyền</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#050506,#26262b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>mono</code></td><td>Xám tối giản</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#fafafa,#d5d5db);vertical-align:middle"></span></td></tr>
+      </table></div>
+
+      <h4>Bố cục — <code>layout</code> (13)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th><th>Dùng khi nào</th></tr>
+        <tr><td><code>left</code></td><td>Mặc định</td><td>An toàn nhất cho mọi nội dung. Tiêu đề trái, phụ đề ngay dưới.</td></tr>
+        <tr><td><code>center</code></td><td>Căn giữa</td><td>Căn giữa, hợp câu thông điệp ngắn và ảnh đăng feed.</td></tr>
+        <tr><td><code>hero</code></td><td>Hero lớn</td><td>Tiêu đề rất lớn + gạch nhấn màu. Hợp thông báo, cover, thumbnail.</td></tr>
+        <tr><td><code>quote</code></td><td>Thẻ quote</td><td>Dấu ngoặc kép lớn + tên tác giả ở dưới. Hợp trích dẫn.</td></tr>
+        <tr><td><code>split</code></td><td>Chia đôi</td><td>Chữ bên trái, khối màu bên phải. Hợp bài viết có tiêu đề dài.</td></tr>
+        <tr><td><code>list</code></td><td>Danh sách</td><td>Phụ đề tách theo dấu ; hoặc | thành các mục đánh số.</td></tr>
+        <tr><td><code>timeline</code></td><td>Lộ trình</td><td>Các mục thành lộ trình dọc có đường nối, tối đa 5 bước.</td></tr>
+        <tr><td><code>number</code></td><td>Số lớn</td><td>Tách số đầu tiên trong tiêu đề ra làm số lớn (vd &quot;40%&quot;).</td></tr>
+        <tr><td><code>sticker</code></td><td>Thẻ sticker</td><td>Khung viền đậm + nhãn tác giả xoay góc. Hợp ảnh bìa vui.</td></tr>
+        <tr><td><code>card</code></td><td>Thẻ nổi</td><td>Thẻ nổi bo tròn trên nền gradient, có đổ bóng.</td></tr>
+        <tr><td><code>minimal</code></td><td>Tối giản</td><td>Rất nhiều khoảng trắng, gạch nhấn mảnh. Hợp ảnh sang, ít chữ.</td></tr>
+        <tr><td><code>terminal</code></td><td>Terminal</td><td>Cửa sổ terminal với 3 nút màu, chữ monospace. Hợp nội dung dev.</td></tr>
+        <tr><td><code>story</code></td><td>Story</td><td>Thanh tiến trình trên cùng + avatar chữ cái đầu của tác giả.</td></tr>
+      </table></div>
+
+      <h4>Kích thước — <code>size</code> (15)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th><th>Pixel</th><th>Dùng cho</th></tr>
+        <tr><td><code>1200x630</code></td><td>Link FB</td><td>1200×630</td><td>Link share Facebook / OG image</td></tr>
+        <tr><td><code>1200x1200</code></td><td>Bài FB vuông</td><td>1200×1200</td><td>Bài đăng feed vuông (FB/IG)</td></tr>
+        <tr><td><code>1080x1350</code></td><td>FB dọc 4:5</td><td>1080×1350</td><td>Feed dọc 4:5 — tỷ lệ đẹp nhất trên FB/IG</td></tr>
+        <tr><td><code>1080x1920</code></td><td>Story FB</td><td>1080×1920</td><td>Story / Reel</td></tr>
+        <tr><td><code>1640x624</code></td><td>Bìa FB</td><td>1640×624</td><td>Ảnh bìa trang Facebook</td></tr>
+        <tr><td><code>1200x628</code></td><td>LinkedIn ngang</td><td>1200×628</td><td>Bài LinkedIn / X (ngang)</td></tr>
+        <tr><td><code>1200x1500</code></td><td>LinkedIn dọc</td><td>1200×1500</td><td>Bài LinkedIn dọc 4:5</td></tr>
+        <tr><td><code>1280x720</code></td><td>YouTube</td><td>1280×720</td><td>Thumbnail YouTube</td></tr>
+        <tr><td><code>1920x1080</code></td><td>Slide 16:9</td><td>1920×1080</td><td>Slide 16:9 full HD</td></tr>
+        <tr><td><code>1600x900</code></td><td>Slide HD</td><td>1600×900</td><td>Slide 16:9 nhẹ</td></tr>
+        <tr><td><code>1000x1500</code></td><td>Pinterest</td><td>1000×1500</td><td>Pinterest (2:3)</td></tr>
+        <tr><td><code>800x1000</code></td><td>Share dọc</td><td>800×1000</td><td>Share dọc Zalo / Messenger</td></tr>
+        <tr><td><code>1080x1080</code></td><td>Vuông</td><td>1080×1080</td><td>Ảnh vuông chung</td></tr>
+        <tr><td><code>800x800</code></td><td>Nhỏ</td><td>800×800</td><td>Ảnh nhỏ, icon, preview</td></tr>
+        <tr><td><code>1080x608</code></td><td>Link FB nhỏ</td><td>1080×608</td><td>Link Facebook tỷ lệ 1.91:1 (nhẹ)</td></tr>
+      </table></div>
+
+      <h4>Hoa tiết nền — <code>pattern</code> (9)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th></tr>
+        <tr><td><code>orb</code></td><td>Quầng sáng</td></tr>
+        <tr><td><code>dots</code></td><td>Chấm lưới</td></tr>
+        <tr><td><code>grid</code></td><td>Kẻ ô</td></tr>
+        <tr><td><code>waves</code></td><td>Sóng</td></tr>
+        <tr><td><code>beams</code></td><td>Vệt sáng</td></tr>
+        <tr><td><code>rings</code></td><td>Vòng đồng tâm</td></tr>
+        <tr><td><code>blobs</code></td><td>Mảng mềm</td></tr>
+        <tr><td><code>confetti</code></td><td>Confetti</td></tr>
+        <tr><td><code>none</code></td><td>Trơn</td></tr>
+      </table></div>
+
+  <h2>7. Lỗi thường gặp</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Lỗi</th><th>Nguyên nhân / cách xử lý</th></tr>
+    <tr><td><code>422</code></td><td>Thiếu <code>ref</code> hoặc workflow không có ở nhánh đó.</td></tr>
+    <tr><td><code>403</code>/<code>404</code></td><td>Token thiếu scope <code>repo</code> + <code>workflow</code>.</td></tr>
+    <tr><td>Manifest chưa có ảnh mới</td><td>Actions chưa commit xong — đợi vài giây rồi đọc lại; run được xếp hàng nên có thể lâu hơn 30s.</td></tr>
+    <tr><td>Nhầm ảnh của agent khác</td><td>Lọc theo <code>date</code> ≥ thời điểm dispatch và khớp <code>title</code>.</td></tr>
+    <tr><td>Tiếng Việt lệch nét</td><td>PNG trong trình duyệt dùng font hệ thống; Actions dùng Noto Sans. Bố cục giống nhau.</td></tr>
+    <tr><td>Tiêu đề quá dài</td><td>Chữ tự thu nhỏ tới 14px; giữ ≤ 120 ký tự, lý tưởng ≤ 60.</td></tr>
+  </table></div>
+
+  <h2>8. Bản đồ file</h2>
+  <div class="tablewrap"><table>
+    <tr><th>File</th><th>Vai trò</th></tr>
+    <tr><td><code>lib/svg.js</code></td><td>Nguồn sự thật: theme, size, layout, pattern, buildSVG, parseRequest, validate.</td></tr>
+    <tr><td><code>lib/catalog.js</code></td><td>Sinh agent.json / llms.txt / agent.html / bảng trong index.html.</td></tr>
+    <tr><td><code>render.mjs</code></td><td>Nhận issue hoặc dispatch → PNG bằng sharp, cập nhật manifest.</td></tr>
+    <tr><td><code>bin/hinh.mjs</code></td><td>CLI cho agent: new / list / get / status / catalog / share.</td></tr>
+    <tr><td><code>.github/workflows/render.yml</code></td><td>Hai cổng kích hoạt: issue <code>[render]</code> và workflow_dispatch.</td></tr>
+    <tr><td><code>gallery/</code></td><td>Ảnh + manifest.json (Actions commit).</td></tr>
+  </table></div>
+</div>
+</body>
+</html>

@@ -1,22 +1,32 @@
 #!/usr/bin/env node
 // CLI điều khiển bộ sinh hình qua GitHub API — thiết kế cho agent (Hermes), CI,
-// hoặc người dùng terminal. Không cần dependency ngoài (dùng fetch có sẵn Node ≥18).
+// hoặc người dùng terminal. Không cần dependency ngoài (dùng fetch có sẵn Node ≥ 18).
 //
-//   node bin/hinh.mjs new --title "Tiêu đề" --theme aurora --size 1080x1350 --wait
+//   node bin/hinh.mjs new --title "Tiêu đề" --theme aurora --size 1080x1350 --wait --out ./anh
+//   node bin/hinh.mjs new --preset lo-trinh --title "Lộ trình 3 bước" --wait
+//   node bin/hinh.mjs catalog --json
+//   node bin/hinh.mjs check --title "X" --theme khong-co     # kiểm tra yêu cầu
+//   node bin/hinh.mjs share --title "X" --theme aurora       # in link trang web
 //   node bin/hinh.mjs list --json
 //   node bin/hinh.mjs get <ten-file.png> --out ./anh
 //   node bin/hinh.mjs status
 //
 // Auth: GITHUB_TOKEN (hoặc GH_TOKEN) trong env, hoặc fallback `gh auth token`.
 // Repo: --repo owner/name | HINH_REPO | mặc định vanthuonghi/hinh-bang-code
+//
+// Mọi lệnh nhận --json: in JSON gọn cho agent đọc; lỗi → exit 1 kèm {"error": ...}.
 
 import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { THEMES, SIZES, LAYOUTS } from '../lib/svg.js';
+import {
+  THEMES, THEME_LABELS, SIZES, SIZE_LABELS, SIZE_USE, LAYOUTS, LAYOUT_INFO,
+  PATTERNS, PRESETS, EXAMPLES, normalize, validateRequest, encodeShare,
+} from '../lib/svg.js';
 
 const DEFAULT_REPO = 'vanthuonghi/hinh-bang-code';
+const DEFAULT_SITE = 'https://vanthuonghi.github.io/hinh-bang-code';
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -35,6 +45,7 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 const cmd = args._[0] || 'help';
 const REPO = args.repo || process.env.HINH_REPO || DEFAULT_REPO;
+const SITE = args.site || process.env.HINH_SITE || DEFAULT_SITE;
 const JSON_OUT = !!args.json;
 
 function out(obj) { console.log(JSON_OUT ? JSON.stringify(obj, null, 2) : obj.text ?? obj); }
@@ -71,12 +82,26 @@ async function api(pathname, { method = 'GET', body, tok } = {}) {
   return data;
 }
 
+// Đọc manifest qua Contents API thay vì raw.githubusercontent.com: raw bị CDN
+// cache tới ~5 phút nên agent vừa dispatch xong sẽ đọc phải bản cũ. Contents API
+// luôn trả bản mới nhất và đọc được cả khi chưa có token (repo public).
 async function manifest(tok) {
-  const r = await fetch(`https://raw.githubusercontent.com/${REPO}/main/gallery/manifest.json`, {
-    headers: tok ? { Authorization: `Bearer ${tok}` } : {},
-  });
-  if (!r.ok) die(`Không đọc được manifest (${r.status}) — repo chưa có hình nào?`);
-  return r.json();
+  const paths = [
+    `https://api.github.com/repos/${REPO}/contents/gallery/manifest.json?ref=main`,
+    `https://raw.githubusercontent.com/${REPO}/main/gallery/manifest.json`,
+  ];
+  let last = 0;
+  for (const url of paths) {
+    const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'hinh-cli' };
+    if (tok) headers.Authorization = `Bearer ${tok}`;
+    const r = await fetch(url, { headers });
+    if (!r.ok) { last = r.status; continue; }
+    const body = url.includes('/contents/')
+      ? JSON.parse(Buffer.from((await r.json()).content, 'base64').toString('utf8'))
+      : await r.json();
+    if (body && Array.isArray(body.images)) return body;
+  }
+  die(`Không đọc được manifest (${last}) — repo chưa có hình nào?`);
 }
 
 async function waitRender(startISO, tok) {
@@ -95,20 +120,48 @@ async function waitRender(startISO, tok) {
   die('Hết thời gian chờ (5 phút) — kiểm tra tab Actions.', { run });
 }
 
-async function newImage() {
-  if (!args.title) die('Thiếu --title');
+// Gom request từ --preset rồi tới các cờ riêng (cờ riêng thắng preset).
+// Trả về giá trị THÔ (chưa normalize) để `check` còn báo được enum sai.
+function requestFromArgs() {
+  const preset = args.preset && args.preset !== true
+    ? PRESETS.find((p) => p.key === String(args.preset))
+    : null;
+  if (args.preset && args.preset !== true && !preset) {
+    die(`Preset không tồn tại: ${args.preset}`, { allowed: PRESETS.map((p) => p.key) });
+  }
+  const str = (v) => (v === undefined || v === true ? '' : String(v));
   const req = {
-    title: String(args.title),
-    subtitle: args.subtitle ? String(args.subtitle) : '',
-    author: args.author ? String(args.author) : '',
-    size: args.size ? String(args.size) : '1200x630',
-    theme: args.theme ? String(args.theme) : 'sunset',
-    layout: args.layout ? String(args.layout) : 'left',
-    footer: args.footer ? String(args.footer) : '',
+    title: str(args.title),
+    subtitle: str(args.subtitle),
+    author: str(args.author),
+    footer: str(args.footer),
+    emoji: str(args.emoji),
+    theme: str(args.theme) || preset?.theme,
+    layout: str(args.layout) || preset?.layout,
+    size: str(args.size) || preset?.size,
+    pattern: str(args.pattern) || preset?.pattern,
   };
-  if (!SIZES[req.size]) die(`Kích thước không hợp lệ: ${req.size}`, { allowed: Object.keys(SIZES) });
-  if (!THEMES[req.theme]) die(`Theme không hợp lệ: ${req.theme}`, { allowed: Object.keys(THEMES) });
-  if (!LAYOUTS[req.layout]) die(`Bố cục không hợp lệ: ${req.layout}`, { allowed: Object.keys(LAYOUTS) });
+  // --preset mà không có --title: mượn cả bộ nội dung mẫu (tiêu đề + phụ đề +
+  // tác giả) để ảnh demo không bị trơ khung. Cờ nào đã đưa thì giữ nguyên.
+  if (!req.title) {
+    const ex = preset && EXAMPLES.find((e) => e.key === preset.key);
+    if (ex) for (const k of ['title', 'subtitle', 'author']) if (!req[k]) req[k] = ex[k] ?? '';
+  }
+  return req;
+}
+
+async function newImage() {
+  const raw = requestFromArgs();
+  if (!String(raw.title || '').trim()) die('Thiếu --title (hoặc --preset có nội dung mẫu).');
+  const { ok, errors, warnings } = validateRequest(raw);
+  if (!ok) die(errors.join(' · '), { errors });
+  const req = normalize(raw);
+
+  if (args['dry-run']) {
+    out({ ok: true, dry_run: true, inputs: req, warnings,
+          text: `🧪 Yêu cầu hợp lệ (không gửi đi)\n${JSON.stringify(req, null, 2)}` });
+    return;
+  }
 
   const tok = token();
   const started = new Date().toISOString();
@@ -119,7 +172,8 @@ async function newImage() {
   });
 
   if (!args.wait) {
-    out({ ok: true, dispatched: true, repo: REPO, inputs: req, started, text: `✅ Đã gửi yêu cầu render (dispatch) — chạy ~30s. Xem: https://github.com/${REPO}/actions` });
+    out({ ok: true, dispatched: true, repo: REPO, inputs: req, warnings, started,
+          text: `✅ Đã gửi yêu cầu render (dispatch) — chạy ~30s. Xem: https://github.com/${REPO}/actions` });
     return;
   }
 
@@ -132,7 +186,7 @@ async function newImage() {
   const fresh = (m.images || []).filter((i) => new Date(i.date) >= new Date(started));
   // Ưu tiên entry đúng TIÊU ĐỀ mình vừa gửi: nhiều run song song thì entry mới
   // nhất chưa chắc là của mình.
-  const want = String(args.title).replace(/^\s*\[render\]\s*/i, '').trim();
+  const want = String(req.title).trim();
   const img = fresh.find((i) => String(i.title).trim() === want) || fresh[0];
   if (!img) die('Run thành công nhưng không thấy entry mới trong manifest.', { run_id: run.id });
   const rawUrl = `https://github.com/${REPO}/raw/main/gallery/${img.file}`;
@@ -146,8 +200,10 @@ async function newImage() {
     await writeFile(dest, buf);
     saved = path.resolve(dest);
   }
-  out({ ok: true, file: img.file, title: img.title, size: img.size, theme: img.theme, layout: img.layout,
-        url: rawUrl, svg_url: `https://github.com/${REPO}/raw/main/gallery/${img.svg}`, run_id: run.id, saved,
+  out({ ok: true, file: img.file, title: img.title, size: img.size, theme: img.theme,
+        layout: img.layout, pattern: img.pattern, url: rawUrl,
+        svg_url: `https://github.com/${REPO}/raw/main/gallery/${img.svg}`,
+        run_id: run.id, saved, warnings,
         text: `✅ ${img.file}\n   PNG: ${rawUrl}\n   ${saved ? 'Đã tải: ' + saved : '(thêm --out <thư mục> để tải về)'}` });
 }
 
@@ -188,22 +244,66 @@ async function status() {
   for (const r of runs) console.log(`  ${r.conclusion || r.status} | ${r.event} | ${r.created_at} | ${r.title}\n     ${r.url}`);
 }
 
+function catalog() {
+  const data = {
+    themes: Object.keys(THEMES).map((k) => ({ key: k, label: THEME_LABELS[k] || k, from: THEMES[k].from, to: THEMES[k].to })),
+    layouts: Object.keys(LAYOUTS).map((k) => ({ key: k, label: LAYOUTS[k], hint: LAYOUT_INFO[k]?.hint || '', subtitle_hint: LAYOUT_INFO[k]?.subtitle || '' })),
+    sizes: Object.keys(SIZES).map((k) => ({ key: k, label: SIZE_LABELS[k] || k, width: SIZES[k][0], height: SIZES[k][1], use: SIZE_USE[k] || '' })),
+    patterns: Object.keys(PATTERNS).map((k) => ({ key: k, label: PATTERNS[k] })),
+    presets: PRESETS,
+    examples: EXAMPLES,
+  };
+  if (JSON_OUT) { out({ ok: true, catalog: data }); return; }
+  console.log('Bảng màu:'); for (const t of data.themes) console.log(`  ${t.key.padEnd(12)} ${t.label}`);
+  console.log('\nBố cục:'); for (const l of data.layouts) console.log(`  ${l.key.padEnd(12)} ${l.label} — ${l.hint}`);
+  console.log('\nKích thước:'); for (const s of data.sizes) console.log(`  ${s.key.padEnd(12)} ${s.width}×${s.height}  ${s.use}`);
+  console.log('\nHoa tiết:'); for (const p of data.patterns) console.log(`  ${p.key.padEnd(12)} ${p.label}`);
+  console.log('\nMẫu sẵn:'); for (const p of data.presets) console.log(`  ${p.key.padEnd(12)} ${p.label} (${p.theme}/${p.layout}/${p.size}/${p.pattern})`);
+}
+
+function checkRequest() {
+  const raw = requestFromArgs();
+  const res = validateRequest(raw);
+  const req = normalize(raw);
+  out({ ok: res.ok, request: req, errors: res.errors, warnings: res.warnings,
+        text: res.ok ? `✅ Hợp lệ${res.warnings.length ? '\n💡 ' + res.warnings.join('\n💡 ') : ''}\n${JSON.stringify(req, null, 2)}`
+                     : `❌ ${res.errors.join('\n❌ ')}` });
+  if (!res.ok) process.exit(1);
+}
+
+function shareLink() {
+  const req = normalize(requestFromArgs());
+  const q = encodeShare(req);
+  const url = `${SITE}/${q ? '?' + q : ''}`;
+  out({ ok: true, url, inputs: req, text: url });
+}
+
 const HELP = `hinh — điều khiển bộ sinh hình trên GitHub
 
-  new  --title "..." [--subtitle] [--author] [--size 1200x630] [--theme sunset]
-            [--layout left] [--footer "..."] [--wait] [--out <dir>]
-  list [--n 20] [--json]
-  get  <tên-file.png> [--out <dir>]
-  status
+  new    --title "..." [--subtitle] [--author] [--footer] [--emoji 🚀]
+         [--theme sunset] [--layout left] [--size 1200x630] [--pattern orb]
+         [--preset <key>] [--wait] [--out <dir>] [--dry-run]
+  check  <cờ như new>             # chỉ kiểm tra, không gửi
+  share  <cờ như new>             # in link mở trang web kèm yêu cầu
+  catalog [--json]                # toàn bộ theme/layout/size/pattern/preset
+  list   [--n 20] [--json]
+  get    <tên-file.png> [--out <dir>]
+  status [--json]
   help
 
 Auth: GITHUB_TOKEN / GH_TOKEN hoặc \`gh auth token\`. Repo: --repo | HINH_REPO.
+Site (cho share): --site | HINH_SITE
 Kích thước: ${Object.keys(SIZES).join(', ')}
 Bảng màu:   ${Object.keys(THEMES).join(', ')}
-Bố cục:     ${Object.keys(LAYOUTS).join(', ')}`;
+Bố cục:     ${Object.keys(LAYOUTS).join(', ')}
+Hoa tiết:   ${Object.keys(PATTERNS).join(', ')}
+Preset:     ${PRESETS.map((p) => p.key).join(', ')}`;
 
 switch (cmd) {
   case 'new': await newImage(); break;
+  case 'check': checkRequest(); break;
+  case 'share': shareLink(); break;
+  case 'catalog': catalog(); break;
   case 'list': await listImages(); break;
   case 'get': await getImage(); break;
   case 'status': await status(); break;

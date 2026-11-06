@@ -3,317 +3,1063 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sinh hình bằng code — nhập yêu cầu, GitHub tự render</title>
-<meta name="description" content="Trang tĩnh nhập yêu cầu hình; GitHub Actions tự sinh ảnh (SVG → PNG) và trả về issue. Có API/CLI cho agent." />
+<title>Sinh hình bằng code — nhập yêu cầu, tải PNG ngay, GitHub render hộ</title>
+<meta name="description" content="Trang tĩnh nhập yêu cầu hình: tải PNG/SVG ngay trong trình duyệt (không cần đăng nhập), hoặc để GitHub Actions render và lưu vào gallery. Có API + CLI + agent.json cho AI agent (Hermes)." />
+<meta name="theme-color" content="#0f1117" />
+<link rel="canonical" href="https://vanthuonghi.github.io/hinh-bang-code/" />
+<!-- để agent/tool tự tìm thấy tài liệu máy đọc -->
+<link rel="alternate" type="application/json" href="agent.json" title="Danh mục + API cho agent" />
+<link rel="help" href="agent.html" title="Hướng dẫn cho AI agent" />
+<link rel="alternate" type="text/plain" href="llms.txt" title="llms.txt" />
 <style>
   :root {
-    --bg: #0f1117; --card: #171a23; --border: #262b38; --ink: #e9ecf3;
-    --muted: #9aa3b5; --accent: #6a8dff; --ok: #4ade80; --err: #ff6b6b;
+    --bg: #0e1016; --bg-2: #12151d; --card: #161a24; --card-2: #1b202c;
+    --border: #252b39; --border-2: #303849;
+    --ink: #e9ecf3; --muted: #98a1b4; --muted-2: #79839a;
+    --accent: #7c9cff; --accent-2: #63e0b8; --accent-ink: #0a0f1f;
+    --ok: #4ade80; --warn: #fbbf24; --err: #ff7b7b;
+    --radius: 16px;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 15px/1.6 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0; color: var(--ink);
+    background:
+      radial-gradient(900px 500px at 12% -8%, #1c2a52 0%, transparent 60%),
+      radial-gradient(800px 480px at 92% 0%, #1b3b39 0%, transparent 55%),
+      var(--bg);
+    font: 15px/1.62 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 60px; }
-  header h1 { font-size: 26px; margin: 0 0 6px; }
-  header p { color: var(--muted); margin: 0 0 18px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
-  input[type=text], input[type=password] {
-    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
-    background: #0d1017; color: var(--ink); font: inherit; outline: none;
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 0 20px 72px; }
+
+  /* ---------- thanh trên ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: #0e1016e6; backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
   }
-  input[type=text]:focus, input[type=password]:focus { border-color: var(--accent); }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .topbar .inner {
+    max-width: 1220px; margin: 0 auto; padding: 10px 20px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; letter-spacing: -0.2px; }
+  .brand .dot {
+    width: 24px; height: 24px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  }
+  .tabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .tab {
+    padding: 7px 13px; border-radius: 9px; border: 1px solid transparent;
+    background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  .tab:hover { color: var(--ink); background: #ffffff08; }
+  .tab.active { color: var(--ink); background: #ffffff0d; border-color: var(--border-2); }
+  .ghlink {
+    font-size: 13px; color: var(--muted); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: 9px;
+  }
+  .ghlink:hover { color: var(--ink); text-decoration: none; border-color: var(--border-2); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 34px 0 8px; }
+  .hero h1 {
+    font-size: clamp(26px, 3.4vw, 40px); line-height: 1.14; letter-spacing: -1px;
+    margin: 0 0 10px; max-width: 20ch;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--muted); margin: 0; max-width: 76ch; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 4px; }
+  .badge {
+    font-size: 12.5px; font-weight: 600; color: var(--muted);
+    border: 1px solid var(--border); background: #ffffff05;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .badge strong { color: var(--ink); font-weight: 700; }
+
+  /* ---------- layout ---------- */
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr); gap: 22px; align-items: start; }
+  @media (max-width: 980px) { .split { grid-template-columns: 1fr; } }
+  .card {
+    background: linear-gradient(180deg, #171b26 0%, #141822 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card + .card { margin-top: 18px; }
+  .sticky { position: sticky; top: 72px; }
+  @media (max-width: 980px) { .sticky { position: static; } }
+
+  h2.section {
+    font-size: 20px; letter-spacing: -0.4px; margin: 46px 0 14px;
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  h2.section small { font-size: 13px; font-weight: 500; color: var(--muted-2); }
+  h3 { font-size: 15px; margin: 0 0 4px; letter-spacing: -0.2px; }
+  .step {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 7px; margin-right: 8px;
+    background: #ffffff0f; border: 1px solid var(--border-2);
+    font-size: 12px; font-weight: 700; color: var(--muted);
+  }
+
+  /* ---------- form ---------- */
+  label.f { display: block; margin: 18px 0 7px; font-size: 13px; font-weight: 650; color: var(--ink); }
+  label.f > .opt { font-weight: 500; color: var(--muted-2); }
+  .fhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .count { font-size: 11.5px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+  .count.hot { color: var(--warn); }
+  input[type=text], input[type=password], textarea, select {
+    width: 100%; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: #0c0f16; color: var(--ink);
+    font: inherit; outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus, input[type=password]:focus, textarea:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px #7c9cff1f;
+  }
+  textarea { resize: vertical; min-height: 92px; font-size: 13px; line-height: 1.55; }
+  .help { font-size: 12.5px; color: var(--muted-2); margin: 6px 0 0; }
+  .help b { color: var(--muted); font-weight: 600; }
+  .help code, code.inline {
+    background: #0b0e15; border: 1px solid var(--border); padding: 1px 5px;
+    border-radius: 5px; color: var(--accent-2); font-size: 12px;
+  }
+
+  .chips { display: flex; gap: 7px; flex-wrap: wrap; }
   .chip {
-    padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border);
-    background: #0d1017; color: var(--muted); cursor: pointer; font: inherit; font-size: 12.5px;
+    padding: 6px 11px; border-radius: 9px; border: 1px solid var(--border);
+    background: #0c0f16; color: var(--muted); cursor: pointer;
+    font: inherit; font-size: 12.5px; font-weight: 550; transition: all .13s;
   }
-  .chip.active { border-color: var(--accent); color: var(--ink); background: #1b2340; }
-  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
-  .swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
-  .swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
-  .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-  button.cta, button.ghost {
-    padding: 11px 18px; border-radius: 9px; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid transparent;
+  .chip:hover { color: var(--ink); border-color: var(--border-2); }
+  .chip.active { color: var(--ink); border-color: var(--accent); background: #26325a; box-shadow: 0 0 0 3px #7c9cff17; }
+  .chip .sub { color: var(--muted-2); font-weight: 500; }
+  .group-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted-2); margin: 12px 0 6px; }
+
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, 34px); gap: 8px; }
+  .swatch {
+    width: 34px; height: 34px; border-radius: 10px; padding: 0; cursor: pointer;
+    border: 2px solid #0000; position: relative;
   }
-  button.cta { background: var(--accent); color: #0b1020; }
-  button.cta:hover { filter: brightness(1.08); }
-  button.cta:disabled { opacity: .55; cursor: wait; }
-  button.ghost { background: transparent; color: var(--accent); border-color: var(--accent); }
-  .err { color: var(--err); font-size: 13px; margin-top: 10px; display: none; }
-  .ok { color: var(--ok); font-size: 13.5px; margin-top: 10px; display: none; }
-  #preview { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .swatch:hover { transform: translateY(-1px); }
+  .swatch.active { border-color: #fff; box-shadow: 0 0 0 3px #7c9cff55; }
+  .swatch-name { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .swatch-name b { color: var(--ink); }
+
+  /* presets */
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 10px; }
+  .preset {
+    border: 1px solid var(--border); background: #0c0f16; border-radius: 12px;
+    overflow: hidden; cursor: pointer; padding: 0; text-align: left; font: inherit;
+    transition: all .14s;
+  }
+  .preset:hover { border-color: var(--border-2); transform: translateY(-1px); }
+  .preset.active { border-color: var(--accent); box-shadow: 0 0 0 3px #7c9cff22; }
+  .preset .thumb { display: block; background: #0a0d13; border-bottom: 1px solid var(--border); }
+  .preset .thumb svg { display: block; width: 100%; height: auto; }
+  .preset .pmeta { padding: 7px 9px 8px; }
+  .preset .pmeta b { display: block; font-size: 12.5px; font-weight: 650; color: var(--ink); }
+  .preset .pmeta span { font-size: 11px; color: var(--muted-2); }
+
+  /* actions */
+  .actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 22px; }
+  button.btn {
+    padding: 11px 16px; border-radius: 11px; font: inherit; font-weight: 700; font-size: 14px;
+    cursor: pointer; border: 1px solid transparent; transition: all .14s;
+  }
+  button.btn.primary {
+    background: linear-gradient(135deg, var(--accent), #9db4ff);
+    color: var(--accent-ink); box-shadow: 0 8px 22px -10px #7c9cffcc;
+  }
+  button.btn.primary:hover { filter: brightness(1.06); }
+  button.btn.ghost { background: #ffffff08; border-color: var(--border-2); color: var(--ink); }
+  button.btn.ghost:hover { background: #ffffff12; }
+  button.btn.mini { padding: 7px 11px; font-size: 12.5px; border-radius: 9px; font-weight: 600; }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .note { font-size: 12.5px; color: var(--muted-2); margin-top: 12px; }
+  .msgs { margin-top: 12px; display: grid; gap: 6px; }
+  .msg { font-size: 13px; padding: 8px 11px; border-radius: 9px; border: 1px solid; display: none; }
+  .msg.show { display: block; }
+  .msg.err { color: #ffd0d0; background: #3a1418; border-color: #6b2530; }
+  .msg.warn { color: #ffe6b0; background: #3a2c10; border-color: #6b5220; }
+  .msg.ok { color: #c8ffdd; background: #0f2f21; border-color: #1e5c3f; }
+
+  /* preview */
+  .pv-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .pv-head b { font-size: 13px; letter-spacing: .02em; }
+  .pv-meta { font-size: 11.5px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+  #preview {
+    border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+    background: #0a0d13; box-shadow: 0 18px 40px -28px #000;
+  }
   #preview svg { display: block; width: 100%; height: auto; }
-  .hint { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
-  .hint code, .inline-code { background: #0d1017; padding: 1px 6px; border-radius: 5px; color: var(--accent); }
-  h2 { font-size: 18px; margin: 40px 0 14px; }
-  /* đăng nhập */
-  .auth { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;
-          background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
-  .auth .grow { flex: 1; min-width: 220px; }
-  .auth input { margin: 0; }
-  .auth button { padding: 9px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer;
-                 border: 1px solid var(--accent); background: transparent; color: var(--accent); }
-  .auth button.primary { background: var(--accent); color: #0b1020; }
-  .who { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
-  .who img { width: 26px; height: 26px; border-radius: 50%; }
-  .who button { border-color: var(--border); color: var(--muted); }
+  .pv-foot { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* guide tables */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: #ffffff05; font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted-2); font-weight: 650; }
+  tr:last-child td { border-bottom: none; }
+  td code { color: var(--accent-2); font-size: 12.5px; }
+  pre.snippet {
+    background: #0a0d13; border: 1px solid var(--border); border-radius: 12px;
+    padding: 13px 14px; overflow: auto; font-size: 12.5px; line-height: 1.65; margin: 10px 0 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #cfd7e6; white-space: pre;
+  }
+  pre.snippet .c { color: #6f7c93; }
+  .copybar { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+
   /* gallery */
-  .gbar { display: flex; gap: 8px; margin-bottom: 12px; }
-  #gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-  #gallery a { display: block; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
-  #gallery img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; background: #0d1017; }
-  #gallery .meta { font-size: 12px; color: var(--muted); padding: 8px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  #gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  #gallery a { display: block; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); }
+  #gallery a:hover { border-color: var(--border-2); text-decoration: none; }
+  #gallery img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; background: #0a0d13; }
+  #gallery .gm { font-size: 12px; color: var(--muted); padding: 8px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #gallery .gm b { color: var(--ink); font-weight: 600; }
   .empty { color: var(--muted); font-size: 14px; }
+
+  /* đăng nhập PAT (tuỳ chọn) */
+  .auth {
+    display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 11px 13px; margin-bottom: 14px;
+  }
+  .auth .grow { flex: 1; min-width: 240px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .auth input { margin: 0; flex: 1; min-width: 200px; }
+  .auth button.login {
+    padding: 9px 14px; border-radius: 9px; font: inherit; font-weight: 650; font-size: 13px;
+    cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  }
+  .who { display: flex; align-items: center; gap: 9px; font-size: 13.5px; }
+  .who img { width: 26px; height: 26px; border-radius: 50%; background: #0a0d13; }
+  .who button {
+    padding: 6px 11px; border-radius: 8px; font: inherit; font-size: 12.5px; cursor: pointer;
+    border: 1px solid var(--border-2); background: #ffffff08; color: var(--muted);
+  }
+
+  details.box { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: #0c0f16; margin-top: 14px; }
+  details.box > summary { cursor: pointer; font-size: 13px; font-weight: 650; color: var(--ink); }
+  details.box[open] > summary { margin-bottom: 10px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+    background: #1b2230; border: 1px solid var(--border-2); color: var(--ink);
+    padding: 10px 16px; border-radius: 11px; font-size: 13px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: all .2s; z-index: 50;
+    box-shadow: 0 18px 40px -20px #000;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
-<body data-repo="vanthuonghi/hinh-bang-code">
-<div class="wrap">
-  <header>
-    <h1>🎨 Sinh hình bằng code</h1>
-    <p><strong>Miễn phí · không cần đăng nhập · không cần token.</strong> Nhập tiêu đề → <strong>tải PNG ngay trong trình duyệt</strong> (render trên máy bạn, không chờ Actions, không giới hạn số lượng). Muốn lưu ảnh vào gallery công khai của GitHub thì dùng nút bên phải (chỉ phần này mới cần tài khoản GitHub).</p>
-  </header>
+<body data-repo="vanthuonghi/hinh-bang-code" data-branch="main">
 
-  <div class="auth">
-    <div id="authAnonymous" class="grow" style="display:flex;gap:8px;flex-wrap:wrap">
-      <input type="password" id="pat" placeholder="Dán PAT GitHub để đăng nhập (tùy chọn — chỉ tạo issue ngay tại trang)" style="flex:1;min-width:200px" />
-      <button id="login" class="primary">Đăng nhập</button>
+<div class="topbar">
+  <div class="inner">
+    <div class="brand"><span class="dot"></span> Sinh hình bằng code</div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="create" role="tab">Tạo hình</button>
+      <button class="tab" data-tab="gallery" role="tab">Thư viện</button>
+      <button class="tab" data-tab="agent" role="tab">Hướng dẫn Agent</button>
     </div>
-    <div id="authLogged" class="who" style="display:none">
-      <img id="avatar" alt="" /><span id="loginName"></span>
-      <button id="logout">Đăng xuất</button>
-    </div>
-    <span id="authMsg" class="hint" style="margin:0">Tải PNG/SVG <strong>không cần gì cả</strong> — dán PAT ở đây chỉ khi muốn tạo issue GitHub ngay tại trang. Token nằm riêng trong trình duyệt của bạn.</span>
-  </div>
-
-  <div class="grid">
-    <section class="card">
-      <label for="title">Tiêu đề hình *</label>
-      <input type="text" id="title" placeholder="Ví dụ: 5 phút mỗi sáng thay đổi ngày của bạn" maxlength="120" />
-
-      <label for="subtitle">Phụ đề</label>
-      <input type="text" id="subtitle" placeholder="Dòng mô tả ngắn (để trống nếu không cần)" maxlength="160" />
-
-      <label for="author">Tác giả / nhãn (dòng nhỏ trên cùng)</label>
-      <input type="text" id="author" placeholder="Ví dụ: VANHI" maxlength="40" />
-
-      <label id="presetsLabel">Mẫu có sẵn (bấm một cái là ra bộ này)</label>
-      <div class="chips" id="presets"></div>
-
-      <label id="themesLabel">Bảng màu</label>
-      <div class="swatches" id="swatches"></div>
-
-      <label id="layoutsLabel">Bố cục</label>
-      <div class="chips" id="layouts"></div>
-
-      <label id="sizesLabel">Kích thước (Facebook trước)</label>
-      <div class="chips" id="sizes"></div>
-
-      <label for="footer">Chú thích góc dưới (tùy chọn)</label>
-      <input type="text" id="footer" placeholder="Để trống sẽ hiện 'sinh bằng code · ngày'" maxlength="80" />
-
-      <div class="actions">
-        <button class="cta" id="dlPng">⬇ Tải PNG (miễn phí, không cần đăng nhập)</button>
-        <button class="ghost" id="dl">Tải SVG</button>
-        <button class="ghost" id="go">Lưu vào gallery GitHub →</button>
-      </div>
-      <div class="hint">PNG được raster ngay trên máy bạn từ cùng <code class="inline-code">lib/svg.js</code> — không server, không hàng chờ.</div>
-      <div class="err" id="err"></div>
-      <div class="ok" id="ok"></div>
-      <div class="hint" id="goHint"></div>
-    </section>
-
-    <section class="card">
-      <label>Xem trước (render trực tiếp trong trình duyệt)</label>
-      <div id="preview"></div>
-      <div class="hint">Ảnh thật do GitHub Actions render bằng <code class="inline-code">sharp</code> — cùng thư viện <code class="inline-code">lib/svg.js</code> nên khớp gần như tuyệt đối.</div>
-    </section>
-  </div>
-
-  <h2>🗂️ Hình đã render</h2>
-  <div class="gbar">
-    <button class="chip active" data-filter="all">Tất cả</button>
-    <button class="chip" data-filter="mine" id="mineBtn" style="display:none">Của tôi</button>
-    <button class="chip" id="refreshBtn">↻ Tải lại</button>
-  </div>
-  <div id="gallery"><p class="empty">Đang tải gallery…</p></div>
-
-  <h2>🤖 Cho agent / CLI (Hermes)</h2>
-  <div class="card">
-    <p style="margin-top:0;color:var(--muted);font-size:14px">Hai cách gọi từ máy — không cần mở trang:</p>
-    <p style="font-size:14px"><strong>1. REST API</strong> (cần token scopes <code class="inline-code">repo</code> + <code class="inline-code">workflow</code>):</p>
-    <pre class="inline-code" style="white-space:pre-wrap;background:#0d1017;padding:12px;border-radius:8px;font-size:12.5px;overflow:auto">POST https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches
-{ "ref": "refs/heads/main", "inputs": { "title": "Tiêu đề", "subtitle": "Phụ đề", "size": "1200x630", "theme": "aurora", "layout": "quote" } }   // thiếu "ref" sẽ bị 422
-
-# rồi lấy ảnh:
-GET  https://api.github.com/repos/vanthuonghi/hinh-bang-code/contents/gallery/manifest.json
-raw  https://github.com/vanthuonghi/hinh-bang-code/raw/main/gallery/&lt;tên-file&gt;.png</pre>
-    <p style="font-size:14px"><strong>2. CLI</strong> (đi kèm repo, Node ≥20, không cần dependency):</p>
-    <pre class="inline-code" style="white-space:pre-wrap;background:#0d1017;padding:12px;border-radius:8px;font-size:12.5px;overflow:auto">export GITHUB_TOKEN=ghp_...   # hoặc: gh auth login
-node bin/hinh.mjs new --title "Tiêu đề" --theme aurora --layout quote --size 1080x1350 --wait
-node bin/hinh.mjs list --json
-node bin/hinh.mjs get &lt;tên-file.png&gt; --out ./anh</pre>
+    <a class="ghlink" href="https://github.com/vanthuonghi/hinh-bang-code" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
 </div>
 
+<div class="wrap">
+
+  <!-- ================= TẠO HÌNH ================= -->
+  <section class="panel active" id="panel-create">
+    <div class="hero">
+      <h1>Tạo hình đẹp bằng code, <em>không cần thiết kế</em></h1>
+      <p>Nhập tiêu đề, chọn màu và bố cục — ảnh PNG tải về ngay trên máy bạn. Không cần đăng nhập, không token, không chờ. Muốn lưu vào thư viện công khai thì để GitHub Actions render hộ ~30 giây.</p>
+      <!-- số lượng dựng từ lib/svg.js nên không bao giờ lệch với thực tế -->
+      <div class="badges" id="badges"></div>
+    </div>
+
+    <div class="split" style="margin-top:22px">
+      <!-- ---------- FORM ---------- -->
+      <div>
+        <div class="card">
+          <h3>Nội dung</h3>
+          <p class="help" style="margin-top:2px">Chỉ <b>tiêu đề</b> là bắt buộc. Các ô còn lại để trống vẫn ra ảnh đẹp.</p>
+
+          <label class="f" for="title">
+            <span class="fhead"><span>1. Tiêu đề hình <span style="color:var(--err)">*</span></span><span class="count" id="titleCount">0/120</span></span>
+          </label>
+          <input type="text" id="title" placeholder="Ví dụ: 5 phút mỗi sáng thay đổi ngày của bạn" maxlength="120" autocomplete="off" />
+          <p class="help">Câu ngắn thì chữ to. <b>Dưới 60 ký tự</b> là vừa đẹp cho hầu hết kích thước; dài hơn thì chữ tự thu nhỏ để không tràn.</p>
+
+          <label class="f" for="subtitle">
+            <span class="fhead"><span>2. Phụ đề <span class="opt">(tuỳ chọn)</span></span><span class="count" id="subCount">0/160</span></span>
+          </label>
+          <input type="text" id="subtitle" placeholder="Một dòng mô tả ngắn" maxlength="160" autocomplete="off" />
+          <p class="help" id="subtitleHelp">Một câu mô tả ngắn nằm dưới tiêu đề.</p>
+
+          <label class="f" for="author">
+            <span class="fhead"><span>3. Tác giả / nhãn <span class="opt">(tuỳ chọn)</span></span><span class="count" id="authorCount">0/40</span></span>
+          </label>
+          <input type="text" id="author" placeholder="Ví dụ: VANHI, tên trang, tên thương hiệu…" maxlength="40" autocomplete="off" />
+          <p class="help">Hiện thành dòng nhỏ phía trên (chữ in hoa, giãn cách). Với bố cục <b>story</b> và <b>thẻ sticker</b> nó thành avatar/nhãn — nên điền.</p>
+
+          <details class="box" id="pasteBox">
+            <summary>Dán yêu cầu nhanh (dạng văn bản hoặc JSON)</summary>
+            <textarea id="pasteInput" spellcheck="false" placeholder="Tiêu đề: 3 việc nên tự động hoá ngay&#10;Phụ đề: Việc lặp lại;Việc dễ sai;Báo cáo định kỳ&#10;Theme: steel&#10;Bố cục: list&#10;Kích thước: 1200x628&#10;Hoa tiết: grid"></textarea>
+            <div class="copybar">
+              <button class="btn ghost mini" id="pasteApply">Điền vào form</button>
+              <button class="btn ghost mini" id="pasteExample">Xem mẫu</button>
+              <span class="help" style="margin:0">Nhận cả JSON như <code class="inline">{"title":"…","theme":"aurora"}</code></span>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h3>Kiểu dáng</h3>
+          <p class="help" style="margin-top:2px">Bấm một mẫu để áp cả bộ màu + bố cục + kích thước. Sau đó chỉnh từng phần nếu muốn.</p>
+
+          <label class="f"><span class="fhead"><span>4. Mẫu có sẵn</span><span class="count" id="presetCount"></span></span></label>
+          <div class="presets" id="presets"></div>
+
+          <label class="f"><span class="fhead"><span>5. Bảng màu</span><span class="count" id="themeCount"></span></span></label>
+          <div class="swatches" id="swatches"></div>
+          <div class="swatch-name">Đang chọn: <b id="themeName"></b></div>
+
+          <label class="f"><span class="fhead"><span>6. Hoa tiết nền</span><span class="count" id="patternCount"></span></span></label>
+          <div class="chips" id="patterns"></div>
+          <p class="help" id="patternHelp">Hoa tiết nằm phía sau chữ, mờ nên không ảnh hưởng khả năng đọc.</p>
+
+          <label class="f"><span class="fhead"><span>7. Bố cục</span><span class="count" id="layoutCount"></span></span></label>
+          <div id="layouts"></div>
+          <p class="help" id="layoutHelp"></p>
+
+          <label class="f"><span class="fhead"><span>8. Kích thước</span><span class="count" id="sizeCount"></span></span></label>
+          <div id="sizes"></div>
+
+          <label class="f" for="footer">
+            <span class="fhead"><span>9. Chú thích góc dưới <span class="opt">(tuỳ chọn)</span></span><span class="count" id="footerCount">0/80</span></span>
+          </label>
+          <input type="text" id="footer" placeholder="Để trống thì ảnh không có dòng nào ở đáy" maxlength="80" autocomplete="off" />
+
+          <label class="f" for="emoji">
+            <span class="fhead"><span>10. Emoji <span class="opt">(tuỳ chọn)</span></span></span>
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="text" id="emoji" placeholder="🚀" maxlength="8" style="width:90px;text-align:center;font-size:18px" autocomplete="off" />
+            <div class="chips" id="emojiPicker"></div>
+          </div>
+          <p class="help">Hiện thành biểu tượng lớn phía trên tiêu đề (trừ bố cục quote/sticker/terminal/story).</p>
+
+          <div class="actions">
+            <button class="btn primary" id="dlPng">⬇ Tải PNG</button>
+            <button class="btn ghost" id="dlSvg">Tải SVG</button>
+            <button class="btn ghost" id="randomize" title="Đổi màu + hoa tiết + bố cục ngẫu nhiên">🎲 Ngẫu nhiên</button>
+            <button class="btn ghost" id="copyLink">🔗 Copy link chia sẻ</button>
+            <button class="btn ghost" id="saveGallery">Lưu vào thư viện GitHub →</button>
+          </div>
+
+          <div class="msgs">
+            <div class="msg err" id="msgErr"></div>
+            <div class="msg warn" id="msgWarn"></div>
+            <div class="msg ok" id="msgOk"></div>
+          </div>
+          <p class="note">PNG được raster ngay trên máy từ cùng <code class="inline">lib/svg.js</code> mà GitHub Actions dùng — bố cục khớp, chỉ khác font hệ thống (Actions dùng Noto Sans). Phím tắt: <b>Ctrl/⌘ + Enter</b> để tải PNG.</p>
+        </div>
+
+        <div class="card">
+          <h3><span class="step">?</span>Hướng dẫn điền nhanh</h3>
+          <div class="tablewrap" style="margin-top:10px">
+            <table>
+              <tr><th>Trường</th><th>Cách điền để ra ảnh đẹp</th></tr>
+              <tr><td><b>Tiêu đề</b></td><td>Một ý duy nhất, 4–9 từ. Tránh nhồi 2 ý bằng dấu phẩy — chữ sẽ nhỏ và rối.</td></tr>
+              <tr><td><b>Phụ đề</b></td><td>Một câu bổ trợ, không lặp lại tiêu đề. Bố cục <code>list</code>/<code>timeline</code> thì tách mục bằng <code>;</code>.</td></tr>
+              <tr><td><b>Tác giả</b></td><td>Tên trang/thương hiệu, 2–3 từ. Điền khi dùng <code>story</code>, <code>sticker</code>, <code>quote</code>.</td></tr>
+              <tr><td><b>Bảng màu</b></td><td>Nền tối (ocean, midnight, ink, galaxy…) hợp ảnh chụp màn hình; nền sáng (paper, mono, ice) hợp trích dẫn, nội dung chữ dài.</td></tr>
+              <tr><td><b>Bố cục</b></td><td>1 tiêu đề → <code>left</code>/<code>hero</code>. Có 2–4 mục → <code>list</code>/<code>timeline</code>. Có 1 con số → <code>number</code>. Có câu trích dẫn → <code>quote</code>.</td></tr>
+              <tr><td><b>Kích thước</b></td><td>Đăng feed: <code>1080x1350</code>. Chia sẻ link: <code>1200x630</code>. Story: <code>1080x1920</code>. Ảnh bìa: <code>1640x624</code>.</td></tr>
+              <tr><td><b>Hoa tiết</b></td><td>Ảnh nhiều chữ dùng <code>none</code>/<code>orb</code>. Ảnh tiêu đề ngắn dùng <code>confetti</code>/<code>blobs</code>/<code>beams</code> cho sinh động.</td></tr>
+              <tr><td><b>Emoji</b></td><td>Chỉ 1 emoji. Hợp ảnh thông báo, sự kiện, mẹo nhanh.</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- PREVIEW ---------- -->
+      <div class="sticky">
+        <div class="card">
+          <div class="pv-head">
+            <b>Xem trước trực tiếp</b>
+            <span class="pv-meta" id="pvMeta"></span>
+          </div>
+          <div id="preview" aria-live="polite"></div>
+          <div class="pv-foot">
+            <button class="btn primary" id="dlPng2" style="flex:1">⬇ Tải PNG</button>
+            <button class="btn ghost" id="openSvg">Mở SVG ↗</button>
+          </div>
+          <p class="note" id="pvNote">Ảnh thật do GitHub Actions render bằng sharp — cùng thư viện nên khớp gần như tuyệt đối.</p>
+        </div>
+        <div class="card">
+          <h3>Gợi ý nội dung</h3>
+          <p class="help" style="margin-top:2px">Bấm để điền cả bộ nội dung + kiểu dáng mẫu.</p>
+          <div class="chips" id="examples" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= THƯ VIỆN ================= -->
+  <section class="panel" id="panel-gallery">
+    <h2 class="section">Thư viện hình đã render <small id="galleryCount"></small></h2>
+
+    <div class="auth">
+      <div id="authAnonymous" class="grow">
+        <input type="password" id="pat" placeholder="Dán PAT GitHub (tuỳ chọn — chỉ để tạo issue ngay tại trang, token nằm trong máy bạn)" />
+        <button id="login" class="login">Đăng nhập</button>
+      </div>
+      <div id="authLogged" class="who" style="display:none">
+        <img id="avatar" alt="" /><span id="loginName"></span>
+        <button id="logout">Đăng xuất</button>
+      </div>
+      <span class="help" style="margin:0;min-width:220px;flex:1">
+        Lưu lên thư viện <b>không bắt buộc</b> — tải PNG thì không cần gì. PAT cần scope <code class="inline">repo</code> + <code class="inline">workflow</code>.
+      </span>
+    </div>
+
+    <div class="gbar">
+      <button class="chip active" data-filter="all">Tất cả</button>
+      <button class="chip" data-filter="mine" id="mineBtn" style="display:none">Của tôi</button>
+      <button class="chip" id="refreshBtn">↻ Tải lại</button>
+      <a class="chip" href="https://github.com/vanthuonghi/hinh-bang-code/tree/main/gallery" target="_blank" rel="noopener">Mở trên GitHub ↗</a>
+    </div>
+    <div id="gallery"><p class="empty">Đang tải thư viện…</p></div>
+  </section>
+
+  <!-- ================= AGENT ================= -->
+  <section class="panel" id="panel-agent">
+    <h2 class="section">Hướng dẫn cho AI agent (Hermes) <small>đọc xong là gọi được</small></h2>
+
+    <div class="card">
+      <h3>0. Tóm tắt 30 giây</h3>
+      <ul style="margin:8px 0 0;padding-left:20px;color:var(--muted);font-size:14px">
+        <li>Repo: <code class="inline">vanthuonghi/hinh-bang-code</code> · trang: <a href="https://vanthuonghi.github.io/hinh-bang-code/">vanthuonghi.github.io/hinh-bang-code</a></li>
+        <li>Máy đọc được danh mục máy-đọc: <a href="agent.json">agent.json</a> · bản chữ ngắn: <a href="llms.txt">llms.txt</a> · trang hướng dẫn riêng: <a href="agent.html">agent.html</a></li>
+        <li>Muốn ảnh <b>ngay, không cần token</b>: dùng <code class="inline">lib/svg.js</code> (thư viện JS thuần) hoặc tải PNG trên trang này.</li>
+        <li>Muốn ảnh <b>lưu công khai + URL ổn định</b>: gửi <code class="inline">workflow_dispatch</code> rồi đọc <code class="inline">gallery/manifest.json</code>.</li>
+        <li>Mọi input đều có fallback: sai <code class="inline">theme</code>/<code class="inline">layout</code>/<code class="inline">size</code> thì về mặc định, không bao giờ lỗi render.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>1. Gửi yêu cầu render (REST)</h3>
+      <p class="help">Cần token GitHub với scope <code class="inline">repo</code> + <code class="inline">workflow</code> (repo public vẫn cần token để dispatch). Nhớ có <code class="inline">ref</code>, thiếu sẽ bị 422.</p>
+<pre class="snippet" id="snippet-dispatch">curl -X POST \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches \
+  -d '{"ref":"refs/heads/main","inputs":{
+        "title":"3 việc nên tự động hoá ngay",
+        "subtitle":"Việc lặp lại;Việc dễ sai;Báo cáo định kỳ",
+        "author":"VANHI",
+        "theme":"steel","layout":"list","size":"1200x628","pattern":"grid"
+      }}'</pre>
+      <div class="copybar">
+        <button class="btn ghost mini" data-copy="snippet-dispatch">Copy lệnh</button>
+        <span class="help" style="margin:0">Chạy xong ~30 giây, kết quả nằm trong <code class="inline">gallery/</code>.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>2. Lấy kết quả</h3>
+      <p class="help">Manifest là nguồn sự thật: mỗi mục có <code class="inline">file</code>, <code class="inline">svg</code>, <code class="inline">title</code>, <code class="inline">theme</code>, <code class="inline">layout</code>, <code class="inline">size</code>, <code class="inline">pattern</code>, <code class="inline">issue</code>, <code class="inline">user</code>, <code class="inline">date</code>.</p>
+<pre class="snippet" id="snippet-read"># manifest (JSON, mới nhất trước)
+# vừa dispatch xong thì đọc qua Contents API — raw bị CDN cache ~5 phút
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/vanthuonghi/hinh-bang-code/contents/gallery/manifest.json?ref=main"
+
+# hoặc bản tĩnh (tiện cho người đọc, có thể chậm vài phút)
+curl -s https://raw.githubusercontent.com/vanthuonghi/hinh-bang-code/main/gallery/manifest.json
+
+# tải PNG theo tên file trong manifest
+curl -LO https://github.com/vanthuonghi/hinh-bang-code/raw/main/gallery/&lt;ten-file&gt;.png
+
+# theo dõi run (mới nhất trước) — lọc theo created_at để không nhầm run của agent khác
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/runs?per_page=20"</pre>
+      <div class="copybar"><button class="btn ghost mini" data-copy="snippet-read">Copy lệnh</button></div>
+    </div>
+
+    <div class="card">
+      <h3>3. Cách khác: CLI có sẵn trong repo</h3>
+      <p class="help">Node ≥ 20, không cần cài dependency. <code class="inline">--wait</code> chờ render xong rồi in URL; <code class="inline">--out</code> tải file về.</p>
+<pre class="snippet" id="snippet-cli">export GITHUB_TOKEN=...        # hoặc: gh auth login
+
+node bin/hinh.mjs new --title "Tiêu đề" --subtitle "Phụ đề" \
+  --theme aurora --layout quote --size 1080x1350 --pattern orb --emoji ✨ \
+  --wait --out ./anh
+
+node bin/hinh.mjs new --preset lo-trinh --title "Lộ trình 3 bước" --wait
+node bin/hinh.mjs catalog --json     # toàn bộ theme/layout/size/pattern + nhãn
+node bin/hinh.mjs list --n 10 --json
+node bin/hinh.mjs get &lt;ten-file.png&gt; --out ./anh
+node bin/hinh.mjs status --json</pre>
+      <div class="copybar"><button class="btn ghost mini" data-copy="snippet-cli">Copy lệnh</button></div>
+    </div>
+
+    <div class="card">
+      <h3>4. Cách khác: mở issue (dành cho người, không cần token trên máy)</h3>
+      <p class="help">Tiêu đề issue bắt đầu bằng <code class="inline">[render]</code>. Phần thân theo dạng <code class="inline">Khoá: giá trị</code>, mỗi dòng một khoá. Dấu tiếng Việt có/không đều được.</p>
+<pre class="snippet" id="snippet-issue">[render] 3 việc nên tự động hoá ngay
+
+Tiêu đề: 3 việc nên tự động hoá ngay
+Phụ đề: Việc lặp lại;Việc dễ sai;Báo cáo định kỳ
+Tác giả: VANHI
+Kích thước: 1200x628
+Theme: steel
+Bố cục: list
+Hoa tiết: grid
+Chú thích: vanthuonghi.com</pre>
+      <p class="help">Bot trả lời bằng comment chứa ảnh + <b>khối JSON máy đọc</b> (<code class="inline">ok, file, svg, png_url, svg_url, title, theme, layout, size, pattern, issue, run_id, run_url</code>) — agent chỉ cần parse khối đó.</p>
+      <div class="copybar">
+        <button class="btn ghost mini" data-copy="snippet-issue">Copy mẫu issue</button>
+        <a class="btn ghost mini" href="https://github.com/vanthuonghi/hinh-bang-code/issues/new?title=%5Brender%5D%20Ti%C3%AAu%20%C4%91%E1%BB%81&body=Ti%C3%AAu%20%C4%91%E1%BB%81%3A%20Ti%C3%AAu%20%C4%91%E1%BB%81%0ATheme%3A%20aurora%0AB%E1%BB%91%20c%E1%BB%A5c%3A%20hero%0AK%C3%ADch%20th%C6%B0%E1%BB%9Bc%3A%201200x630" target="_blank" rel="noopener">Mở issue mới ↗</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>5. Tạo ảnh cục bộ, không cần GitHub</h3>
+      <p class="help">Cùng một file <code class="inline">lib/svg.js</code> chạy ở Node và trình duyệt: <code class="inline">buildSVG(req)</code> trả về chuỗi SVG. Muốn PNG thì thêm <code class="inline">sharp</code>.</p>
+<pre class="snippet" id="snippet-lib">import { buildSVG, normalize, validateRequest } from './lib/svg.js';
+
+const req = normalize({ title: 'Xin chào', theme: 'aurora', layout: 'hero', size: '1200x630' });
+const { ok, errors, warnings } = validateRequest(req);
+const svg = buildSVG(req);            // chuỗi SVG, không side-effect
+
+// PNG (cần sharp): import sharp from 'sharp';
+// await sharp(Buffer.from(svg)).png().toFile('out.png');</pre>
+      <div class="copybar"><button class="btn ghost mini" data-copy="snippet-lib">Copy đoạn mã</button></div>
+    </div>
+
+    <div class="card">
+      <h3>6. Danh mục giá trị hợp lệ</h3>
+      <p class="help">Sinh tự động từ <code class="inline">lib/svg.js</code> nên luôn khớp bản render. Bản máy-đọc đầy đủ: <a href="agent.json">agent.json</a>.</p>
+      <!-- catalog:start -->
+<h4>Bảng màu — <code>theme</code> (30)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th><th>Xem trước</th></tr>
+        <tr><td><code>sunset</code></td><td>Hoàng hôn</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ff7e5f,#feb47b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ocean</code></td><td>Đại dương</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#1b3a6b,#4b9fe1);vertical-align:middle"></span></td></tr>
+        <tr><td><code>forest</code></td><td>Rừng sâu</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#143d2b,#4f9d69);vertical-align:middle"></span></td></tr>
+        <tr><td><code>midnight</code></td><td>Nửa đêm</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#141428,#3b2f63);vertical-align:middle"></span></td></tr>
+        <tr><td><code>violet</code></td><td>Tím mộng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#6a3be0,#c86dd7);vertical-align:middle"></span></td></tr>
+        <tr><td><code>paper</code></td><td>Giấy cũ</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f7f4ee,#e7ded0);vertical-align:middle"></span></td></tr>
+        <tr><td><code>coral</code></td><td>San hô</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ff5f6d,#ffc371);vertical-align:middle"></span></td></tr>
+        <tr><td><code>mint</code></td><td>Bạc hà</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#0ba360,#3cba92);vertical-align:middle"></span></td></tr>
+        <tr><td><code>sand</code></td><td>Cát vàng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f5e6ca,#d9b978);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ink</code></td><td>Mực đêm</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#16181d,#3a3f4b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>aurora</code></td><td>Cực quang</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#1a2980,#26d0ce);vertical-align:middle"></span></td></tr>
+        <tr><td><code>rose</code></td><td>Hồng đào</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f953c6,#b91d73);vertical-align:middle"></span></td></tr>
+        <tr><td><code>citrus</code></td><td>Chanh cam</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffd93d,#ff8c42);vertical-align:middle"></span></td></tr>
+        <tr><td><code>steel</code></td><td>Thép xanh</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#485563,#29323c);vertical-align:middle"></span></td></tr>
+        <tr><td><code>grape</code></td><td>Nho chín</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#7048e8,#b197fc);vertical-align:middle"></span></td></tr>
+        <tr><td><code>blush</code></td><td>Má hồng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffe5ec,#ffc2d1);vertical-align:middle"></span></td></tr>
+        <tr><td><code>blueprint</code></td><td>Bản vẽ kỹ thuật</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#0f2027,#2c5364);vertical-align:middle"></span></td></tr>
+        <tr><td><code>clay</code></td><td>Đất nung</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#c79081,#dfa579);vertical-align:middle"></span></td></tr>
+        <tr><td><code>galaxy</code></td><td>Dải ngân hà</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#10122b,#5b2c83);vertical-align:middle"></span></td></tr>
+        <tr><td><code>eclipse</code></td><td>Nhật thực</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#0b0f19,#2a1b4d);vertical-align:middle"></span></td></tr>
+        <tr><td><code>lagoon</code></td><td>Vũng ngọc</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#00b4db,#0083b0);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ember</code></td><td>Than hồng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#2b0a0a,#b33c1a);vertical-align:middle"></span></td></tr>
+        <tr><td><code>cocoa</code></td><td>Ca cao</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#3e2723,#8d6e63);vertical-align:middle"></span></td></tr>
+        <tr><td><code>sakura</code></td><td>Anh đào</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffe3ef,#ffb3cd);vertical-align:middle"></span></td></tr>
+        <tr><td><code>peach</code></td><td>Đào mật</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ffc3a0,#ff9db6);vertical-align:middle"></span></td></tr>
+        <tr><td><code>ice</code></td><td>Băng giá</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#e3ecfb,#b6ccf7);vertical-align:middle"></span></td></tr>
+        <tr><td><code>lemon</code></td><td>Chanh vàng</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#f6f3a8,#e0d24a);vertical-align:middle"></span></td></tr>
+        <tr><td><code>moss</code></td><td>Rêu xanh</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#22361a,#7ba05b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>noir</code></td><td>Đen tuyền</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#050506,#26262b);vertical-align:middle"></span></td></tr>
+        <tr><td><code>mono</code></td><td>Xám tối giản</td><td><span style="display:inline-block;width:34px;height:14px;border-radius:4px;background:linear-gradient(135deg,#fafafa,#d5d5db);vertical-align:middle"></span></td></tr>
+      </table></div>
+
+      <h4>Bố cục — <code>layout</code> (13)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th><th>Dùng khi nào</th></tr>
+        <tr><td><code>left</code></td><td>Mặc định</td><td>An toàn nhất cho mọi nội dung. Tiêu đề trái, phụ đề ngay dưới.</td></tr>
+        <tr><td><code>center</code></td><td>Căn giữa</td><td>Căn giữa, hợp câu thông điệp ngắn và ảnh đăng feed.</td></tr>
+        <tr><td><code>hero</code></td><td>Hero lớn</td><td>Tiêu đề rất lớn + gạch nhấn màu. Hợp thông báo, cover, thumbnail.</td></tr>
+        <tr><td><code>quote</code></td><td>Thẻ quote</td><td>Dấu ngoặc kép lớn + tên tác giả ở dưới. Hợp trích dẫn.</td></tr>
+        <tr><td><code>split</code></td><td>Chia đôi</td><td>Chữ bên trái, khối màu bên phải. Hợp bài viết có tiêu đề dài.</td></tr>
+        <tr><td><code>list</code></td><td>Danh sách</td><td>Phụ đề tách theo dấu ; hoặc | thành các mục đánh số.</td></tr>
+        <tr><td><code>timeline</code></td><td>Lộ trình</td><td>Các mục thành lộ trình dọc có đường nối, tối đa 5 bước.</td></tr>
+        <tr><td><code>number</code></td><td>Số lớn</td><td>Tách số đầu tiên trong tiêu đề ra làm số lớn (vd &quot;40%&quot;).</td></tr>
+        <tr><td><code>sticker</code></td><td>Thẻ sticker</td><td>Khung viền đậm + nhãn tác giả xoay góc. Hợp ảnh bìa vui.</td></tr>
+        <tr><td><code>card</code></td><td>Thẻ nổi</td><td>Thẻ nổi bo tròn trên nền gradient, có đổ bóng.</td></tr>
+        <tr><td><code>minimal</code></td><td>Tối giản</td><td>Rất nhiều khoảng trắng, gạch nhấn mảnh. Hợp ảnh sang, ít chữ.</td></tr>
+        <tr><td><code>terminal</code></td><td>Terminal</td><td>Cửa sổ terminal với 3 nút màu, chữ monospace. Hợp nội dung dev.</td></tr>
+        <tr><td><code>story</code></td><td>Story</td><td>Thanh tiến trình trên cùng + avatar chữ cái đầu của tác giả.</td></tr>
+      </table></div>
+
+      <h4>Kích thước — <code>size</code> (15)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th><th>Pixel</th><th>Dùng cho</th></tr>
+        <tr><td><code>1200x630</code></td><td>Link FB</td><td>1200×630</td><td>Link share Facebook / OG image</td></tr>
+        <tr><td><code>1200x1200</code></td><td>Bài FB vuông</td><td>1200×1200</td><td>Bài đăng feed vuông (FB/IG)</td></tr>
+        <tr><td><code>1080x1350</code></td><td>FB dọc 4:5</td><td>1080×1350</td><td>Feed dọc 4:5 — tỷ lệ đẹp nhất trên FB/IG</td></tr>
+        <tr><td><code>1080x1920</code></td><td>Story FB</td><td>1080×1920</td><td>Story / Reel</td></tr>
+        <tr><td><code>1640x624</code></td><td>Bìa FB</td><td>1640×624</td><td>Ảnh bìa trang Facebook</td></tr>
+        <tr><td><code>1200x628</code></td><td>LinkedIn ngang</td><td>1200×628</td><td>Bài LinkedIn / X (ngang)</td></tr>
+        <tr><td><code>1200x1500</code></td><td>LinkedIn dọc</td><td>1200×1500</td><td>Bài LinkedIn dọc 4:5</td></tr>
+        <tr><td><code>1280x720</code></td><td>YouTube</td><td>1280×720</td><td>Thumbnail YouTube</td></tr>
+        <tr><td><code>1920x1080</code></td><td>Slide 16:9</td><td>1920×1080</td><td>Slide 16:9 full HD</td></tr>
+        <tr><td><code>1600x900</code></td><td>Slide HD</td><td>1600×900</td><td>Slide 16:9 nhẹ</td></tr>
+        <tr><td><code>1000x1500</code></td><td>Pinterest</td><td>1000×1500</td><td>Pinterest (2:3)</td></tr>
+        <tr><td><code>800x1000</code></td><td>Share dọc</td><td>800×1000</td><td>Share dọc Zalo / Messenger</td></tr>
+        <tr><td><code>1080x1080</code></td><td>Vuông</td><td>1080×1080</td><td>Ảnh vuông chung</td></tr>
+        <tr><td><code>800x800</code></td><td>Nhỏ</td><td>800×800</td><td>Ảnh nhỏ, icon, preview</td></tr>
+        <tr><td><code>1080x608</code></td><td>Link FB nhỏ</td><td>1080×608</td><td>Link Facebook tỷ lệ 1.91:1 (nhẹ)</td></tr>
+      </table></div>
+
+      <h4>Hoa tiết nền — <code>pattern</code> (9)</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Khoá</th><th>Nhãn</th></tr>
+        <tr><td><code>orb</code></td><td>Quầng sáng</td></tr>
+        <tr><td><code>dots</code></td><td>Chấm lưới</td></tr>
+        <tr><td><code>grid</code></td><td>Kẻ ô</td></tr>
+        <tr><td><code>waves</code></td><td>Sóng</td></tr>
+        <tr><td><code>beams</code></td><td>Vệt sáng</td></tr>
+        <tr><td><code>rings</code></td><td>Vòng đồng tâm</td></tr>
+        <tr><td><code>blobs</code></td><td>Mảng mềm</td></tr>
+        <tr><td><code>confetti</code></td><td>Confetti</td></tr>
+        <tr><td><code>none</code></td><td>Trơn</td></tr>
+      </table></div>
+      <!-- catalog:end -->
+    </div>
+
+    <div class="card">
+      <h3>7. Quy ước &amp; lỗi thường gặp</h3>
+      <div class="tablewrap" style="margin-top:8px">
+        <table>
+          <tr><th>Hiện tượng</th><th>Nguyên nhân / cách xử lý</th></tr>
+          <tr><td><code>422</code> khi dispatch</td><td>Thiếu <code>ref</code> hoặc workflow không tồn tại ở nhánh đó. Dùng <code>"ref":"refs/heads/main"</code>.</td></tr>
+          <tr><td><code>403</code>/<code>404</code></td><td>Token thiếu scope <code>repo</code> + <code>workflow</code>, hoặc repo private mà token không có quyền.</td></tr>
+          <tr><td>Run xong nhưng manifest chưa có ảnh</td><td>Actions commit sau khi render; đợi thêm vài giây rồi đọc lại manifest. Nhiều run được xếp hàng, không chạy song song.</td></tr>
+          <tr><td>Ảnh bị coi là của agent khác</td><td>Lọc mục mới theo <code>date &gt;= thời điểm dispatch</code> và khớp <code>title</code> đã gửi.</td></tr>
+          <tr><td>Chữ tiếng Việt trên Actions</td><td>Workflow cài <code>fonts-noto-core</code>; PNG trong trình duyệt dùng font hệ thống nên nét chữ hơi khác.</td></tr>
+          <tr><td>Tiêu đề quá dài</td><td>Chữ tự thu nhỏ tới 14px rồi vẫn có thể tràn với tiêu đề &gt; 150 ký tự. Giữ dưới 120 ký tự.</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script type="module">
-import { THEMES, SIZES, SIZE_LABELS, LAYOUTS, PRESETS, buildSVG, parseRequest, slugify } from './lib/svg.js';
+import {
+  THEMES, THEME_LABELS, SIZES, SIZE_LABELS, SIZE_GROUPS, LAYOUTS, LAYOUT_INFO, LAYOUT_GROUPS,
+  PATTERNS, PRESETS, EXAMPLES, DEFAULT_REQUEST,
+  buildSVG, normalize, validateRequest, parseRequest, slugify, encodeShare, decodeShare,
+} from './lib/svg.js';
 
 const REPO = document.body.dataset.repo;
+const BRANCH = document.body.dataset.branch || 'main';
 const $ = (id) => document.getElementById(id);
-const state = { theme: 'sunset', size: '1200x630', layout: 'left', filter: 'all', images: [], user: null, token: null };
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
-const FB_SIZES = ['1200x630', '1200x1200', '1080x1350', '1080x1920', '1640x624'];
-const SOCIAL_SIZES = ['1200x628', '1280x720', '1000x1500', '800x1000'];   // LinkedIn, YouTube, Pinterest, share dọc
-const front = [...FB_SIZES, ...SOCIAL_SIZES];
-const sizeOrder = [...front, ...Object.keys(SIZES).filter((s) => !front.includes(s))];
+const state = {
+  theme: DEFAULT_REQUEST.theme, layout: DEFAULT_REQUEST.layout, size: DEFAULT_REQUEST.size,
+  pattern: DEFAULT_REQUEST.pattern, filter: 'all', images: [], user: null, token: null, tab: 'create',
+  touched: false,
+};
 
-function currentRequest() {
+/* ---------------- tiện ích ---------------- */
+let toastTimer;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+function showMsgs({ errors = [], warnings = [], ok = '' } = {}) {
+  const err = $('msgErr'), warn = $('msgWarn'), okEl = $('msgOk');
+  err.textContent = errors.length ? '❗ ' + errors.join(' · ') : '';
+  err.classList.toggle('show', errors.length > 0);
+  warn.textContent = warnings.length ? '💡 ' + warnings.join(' · ') : '';
+  warn.classList.toggle('show', warnings.length > 0);
+  okEl.textContent = ok;
+  okEl.classList.toggle('show', !!ok);
+}
+async function copyText(text, label = 'Đã copy') {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(label);
+  } catch {
+    // fallback cho trình duyệt chặn clipboard
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    toast(label);
+  }
+}
+
+/* ---------------- form ---------------- */
+function readForm() {
   return {
-    title: $('title').value.trim(),
-    subtitle: $('subtitle').value.trim(),
-    author: $('author').value.trim(),
-    footer: $('footer').value.trim(),
-    theme: state.theme,
-    size: state.size,
-    layout: state.layout,
+    title: $('title').value,
+    subtitle: $('subtitle').value,
+    author: $('author').value,
+    footer: $('footer').value,
+    emoji: $('emoji').value,
+    theme: state.theme, layout: state.layout, size: state.size, pattern: state.pattern,
   };
 }
-
-function bodyOf(req) {
-  return [
-    `Tiêu đề: ${req.title}`,
-    req.subtitle && `Phụ đề: ${req.subtitle}`,
-    req.author && `Tác giả: ${req.author}`,
-    `Kích thước: ${req.size}`,
-    `Theme: ${req.theme}`,
-    `Bố cục: ${req.layout}`,
-    req.footer && `Chú thích: ${req.footer}`,
-  ].filter(Boolean).join('\n');
+function writeForm(req) {
+  if (req.title !== undefined) $('title').value = req.title;
+  if (req.subtitle !== undefined) $('subtitle').value = req.subtitle;
+  if (req.author !== undefined) $('author').value = req.author;
+  if (req.footer !== undefined) $('footer').value = req.footer;
+  if (req.emoji !== undefined) $('emoji').value = req.emoji;
+  if (req.theme && THEMES[req.theme]) state.theme = req.theme;
+  if (req.layout && LAYOUTS[req.layout]) state.layout = req.layout;
+  if (req.size && SIZES[req.size]) state.size = req.size;
+  if (req.pattern && PATTERNS[req.pattern]) state.pattern = req.pattern;
 }
 
-function redraw() {
-  const req = currentRequest();
-  $('preview').innerHTML = buildSVG({ ...req, title: req.title || 'Yêu cầu hình' });
-}
+let frame = 0;
+function update() {
+  if (frame) return;
+  frame = requestAnimationFrame(() => {
+    frame = 0;
+    const raw = readForm();
+    const { ok, errors, warnings } = validateRequest(raw);
+    const req = normalize(raw);
+    const showErrors = state.touched ? errors : [];
 
-function showErr(msg) { const e = $('err'); e.textContent = '❗ ' + msg; e.style.display = 'block'; $('ok').style.display = 'none'; }
-function showOk(msg) { const o = $('ok'); o.textContent = msg; o.style.display = 'block'; $('err').style.display = 'none'; }
-
-// ---------- UI: mẫu màu / bố cục / kích thước ----------
-// chọn + đồng bộ active cho 3 nhóm và preset (preset khớp combo mới được tô)
-function markActive(containerId, value) {
-  [...$(containerId).children].forEach((c) => c.classList.toggle('active', c.dataset.k === value));
-}
-function syncActive() {
-  markActive('swatches', state.theme);
-  markActive('layouts', state.layout);
-  markActive('sizes', state.size);
-  [...$('presets').children].forEach((c) => {
-    const p = PRESETS.find((q) => q.key === c.dataset.k);
-    c.classList.toggle('active', !!p && p.theme === state.theme && p.layout === state.layout && p.size === state.size);
+    $('preview').innerHTML = buildSVG({ ...req, title: req.title });
+    const [W, H] = SIZES[req.size];
+    $('pvMeta').textContent = `${W}×${H} · ${req.theme} · ${req.layout} · ${req.pattern}`;
+    $('layoutHelp').innerHTML = LAYOUT_INFO[req.layout]?.hint || '';
+    $('subtitleHelp').textContent = LAYOUT_INFO[req.layout]?.subtitle || 'Một câu mô tả ngắn nằm dưới tiêu đề.';
+    $('themeName').textContent = `${THEME_LABELS[req.theme] || req.theme} (${req.theme})`;
+    $('dlPng').disabled = !ok;
+    $('dlPng2').disabled = !ok;
+    showMsgs({ errors: showErrors, warnings: state.touched ? warnings.slice(0, 2) : [] });
+    syncCounters();
+    syncActive();
+    persist(raw);
   });
 }
-function setTheme(name) { state.theme = name; syncActive(); redraw(); }
-function setLayout(key) { state.layout = key; syncActive(); redraw(); }
-function setSize(key)   { state.size = key;   syncActive(); redraw(); }
 
+function syncCounters() {
+  const pairs = [['title', 'titleCount', 120], ['subtitle', 'subCount', 160], ['author', 'authorCount', 40], ['footer', 'footerCount', 80]];
+  for (const [input, out, max] of pairs) {
+    const len = $(input).value.length;
+    $(out).textContent = `${len}/${max}`;
+    $(out).classList.toggle('hot', len > max * 0.8);
+  }
+}
+function persist(raw) {
+  try { localStorage.setItem('hinh_last_request', JSON.stringify(raw)); } catch { /* riêng tư */ }
+}
+function restore() {
+  const fromUrl = decodeShare(location.search);
+  if (Object.keys(fromUrl).length) return fromUrl;
+  try {
+    const saved = JSON.parse(localStorage.getItem('hinh_last_request') || 'null');
+    if (saved && typeof saved === 'object') return saved;
+  } catch { /* bỏ qua */ }
+  return null;
+}
+
+/* ---------------- dựng UI: mẫu, màu, hoa tiết, bố cục, size ---------------- */
 const sw = $('swatches');
-for (const name of Object.keys(THEMES)) {
+for (const [name, t] of Object.entries(THEMES)) {
   const b = document.createElement('button');
-  b.className = 'swatch';
-  b.dataset.k = name;
-  b.title = name;
-  b.type = 'button';
-  b.setAttribute('aria-label', `Bảng màu ${name}`);
-  b.style.background = `linear-gradient(135deg, ${THEMES[name].from}, ${THEMES[name].to})`;
-  b.onclick = () => setTheme(name);
+  b.className = 'swatch'; b.type = 'button'; b.dataset.k = name;
+  b.title = `${THEME_LABELS[name] || name} (${name})`;
+  b.setAttribute('aria-label', `Bảng màu ${THEME_LABELS[name] || name}`);
+  b.style.background = `linear-gradient(135deg, ${t.from}, ${t.to})`;
+  b.onclick = () => { state.theme = name; update(); };
   sw.appendChild(b);
 }
-const lc = $('layouts');
-for (const [key, label] of Object.entries(LAYOUTS)) {
+const patternBox = $('patterns');
+for (const [key, label] of Object.entries(PATTERNS)) {
   const b = document.createElement('button');
-  b.className = 'chip';
-  b.dataset.k = key;
-  b.type = 'button';
-  b.textContent = label;
-  b.onclick = () => setLayout(key);
-  lc.appendChild(b);
+  b.className = 'chip'; b.type = 'button'; b.dataset.k = key; b.textContent = label;
+  b.title = `pattern: ${key}`;
+  b.onclick = () => { state.pattern = key; update(); };
+  patternBox.appendChild(b);
 }
-const sz = $('sizes');
-for (const key of sizeOrder) {
-  const b = document.createElement('button');
-  b.className = 'chip';
-  b.dataset.k = key;
-  b.type = 'button';
-  b.textContent = `${SIZE_LABELS[key] || key} · ${key}`;
-  b.onclick = () => setSize(key);
-  sz.appendChild(b);
+const layoutBox = $('layouts');
+for (const group of LAYOUT_GROUPS) {
+  const gl = document.createElement('div');
+  gl.className = 'group-label'; gl.textContent = group.label;
+  layoutBox.appendChild(gl);
+  const row = document.createElement('div');
+  row.className = 'chips';
+  for (const key of group.keys) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.dataset.k = key;
+    b.innerHTML = `${esc(LAYOUTS[key])} <span class="sub">${key}</span>`;
+    b.title = LAYOUT_INFO[key]?.hint || '';
+    b.onclick = () => { state.layout = key; update(); };
+    row.appendChild(b);
+  }
+  layoutBox.appendChild(row);
 }
-const pc = $('presets');
-for (const pr of PRESETS) {
-  const b = document.createElement('button');
-  b.className = 'chip';
-  b.dataset.k = pr.key;
-  b.type = 'button';
-  b.textContent = pr.label;
-  b.title = `${pr.theme} · ${pr.layout} · ${pr.size}`;
-  b.onclick = () => { setTheme(pr.theme); setLayout(pr.layout); setSize(pr.size); showOk(`Đã áp mẫu “${pr.label}”`); };
-  pc.appendChild(b);
+const sizeBox = $('sizes');
+for (const group of SIZE_GROUPS) {
+  const gl = document.createElement('div');
+  gl.className = 'group-label'; gl.textContent = group.label;
+  sizeBox.appendChild(gl);
+  const row = document.createElement('div');
+  row.className = 'chips';
+  for (const key of group.keys) {
+    const [w, h] = SIZES[key];
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.dataset.k = key;
+    b.innerHTML = `${esc(SIZE_LABELS[key] || key)} <span class="sub">${w}×${h}</span>`;
+    b.onclick = () => { state.size = key; update(); };
+    row.appendChild(b);
+  }
+  sizeBox.appendChild(row);
 }
-// nhãn đếm tự động theo map nên không cần sửa tay khi thêm mẫu
-$('themesLabel').textContent = `Bảng màu (${Object.keys(THEMES).length} mẫu)`;
-$('layoutsLabel').textContent = `Bố cục (${Object.keys(LAYOUTS).length} mẫu)`;
-$('sizesLabel').textContent = `Kích thước (${Object.keys(SIZES).length} — Facebook trước)`;
-$('presetsLabel').textContent = `Mẫu có sẵn (${PRESETS.length} — bấm một cái)`;
-syncActive();
-['title', 'subtitle', 'author', 'footer'].forEach((id) => $(id).addEventListener('input', redraw));
-redraw();
 
-// ---------- đăng nhập PAT ----------
+// Mỗi SVG có id gradient riêng theo theme; nhúng nhiều SVG vào cùng một trang
+// sẽ trùng id (HTML không hợp lệ, và có thể trỏ nhầm gradient). Prefix theo thứ tự.
+let inlineSeq = 0;
+function inlineUnique(svg) {
+  const n = ++inlineSeq;
+  return svg
+    .replace(/id="([^"]+)"/g, (_, id) => `id="i${n}-${id}"`)
+    .replace(/url\(#([^)]+)\)/g, (_, id) => `url(#i${n}-${id})`);
+}
+
+// Mẫu có sẵn + ảnh thu nhỏ thật (cùng buildSVG nên không bao giờ lệch)
+const presetBox = $('presets');
+for (const p of PRESETS) {
+  const demo = EXAMPLES.find((e) => e.key === p.key) || EXAMPLES[0];
+  const thumb = inlineUnique(buildSVG({ ...demo, theme: p.theme, layout: p.layout, size: p.size, pattern: p.pattern }));
+  const b = document.createElement('button');
+  b.className = 'preset'; b.type = 'button'; b.dataset.k = p.key;
+  b.innerHTML = `<span class="thumb">${thumb}</span>
+    <span class="pmeta"><b>${esc(p.label)}</b><span>${esc(p.theme)} · ${esc(p.layout)} · ${esc(p.size)}</span></span>`;
+  b.onclick = () => {
+    state.theme = p.theme; state.layout = p.layout; state.size = p.size; state.pattern = p.pattern;
+    const ex = EXAMPLES.find((e) => e.key === p.key);
+    if (!$('title').value.trim() && ex) writeForm(ex);          // chỉ điền khi form còn trống
+    update();
+    showMsgs({ ok: `Đã áp mẫu “${p.label}”` });
+  };
+  presetBox.appendChild(b);
+}
+
+const emojiBox = $('emojiPicker');
+for (const e of ['🚀', '✨', '🔥', '💡', '📌', '🎯', '📈', '❤️', '⚡', '🧠']) {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.textContent = e;
+  b.onclick = () => { $('emoji').value = $('emoji').value === e ? '' : e; update(); };
+  emojiBox.appendChild(b);
+}
+
+const exBox = $('examples');
+for (const ex of EXAMPLES) {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.textContent = ex.label;
+  b.title = `${ex.theme} · ${ex.layout} · ${ex.size}`;
+  b.onclick = () => {
+    writeForm(ex); update();
+    showMsgs({ ok: `Đã điền ví dụ “${ex.label}”` });
+  };
+  exBox.appendChild(b);
+}
+
+function syncActive() {
+  const mark = (box, value) => { for (const el of box.children) el.classList.toggle('active', el.dataset.k === value); };
+  mark(sw, state.theme);
+  mark(patternBox, state.pattern);
+  for (const rows of layoutBox.querySelectorAll('.chips')) mark(rows, state.layout);
+  for (const rows of sizeBox.querySelectorAll('.chips')) mark(rows, state.size);
+  for (const el of presetBox.children) {
+    const p = PRESETS.find((q) => q.key === el.dataset.k);
+    el.classList.toggle('active', !!p && p.theme === state.theme && p.layout === state.layout
+      && p.size === state.size && p.pattern === state.pattern);
+  }
+}
+
+const BADGES = [
+  [Object.keys(THEMES).length, 'bảng màu'],
+  [Object.keys(LAYOUTS).length, 'bố cục'],
+  [Object.keys(PATTERNS).length, 'hoa tiết nền'],
+  [Object.keys(SIZES).length, 'kích thước'],
+  [PRESETS.length, 'mẫu sẵn'],
+  [null, 'API + CLI cho agent'],
+];
+const badgeBox = $('badges');
+for (const [n, label] of BADGES) {
+  const s = document.createElement('span');
+  s.className = 'badge';
+  s.innerHTML = n === null ? esc(label) : `<strong>${n}</strong> ${esc(label)}`;
+  badgeBox.appendChild(s);
+}
+
+$('presetCount').textContent = `${PRESETS.length} mẫu`;
+$('themeCount').textContent = `${Object.keys(THEMES).length} màu`;
+$('patternCount').textContent = `${Object.keys(PATTERNS).length} hoa tiết`;
+$('layoutCount').textContent = `${Object.keys(LAYOUTS).length} bố cục`;
+$('sizeCount').textContent = `${Object.keys(SIZES).length} kích thước`;
+
+/* ---------------- tải PNG / SVG ---------------- */
+function download(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 6000);
+}
+
+async function rasterPng(req) {
+  const [W, H] = SIZES[req.size];
+  const svg = buildSVG(req);
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+  try {
+    const img = new Image();
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = () => rej(new Error('Trình duyệt không raster được SVG này'));
+      img.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    const blob = await new Promise((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error('Không tạo được PNG'))), 'image/png'));
+    return { blob, W, H };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function downloadPng() {
+  const raw = readForm();
+  if (!validateRequest(raw).ok) { showMsgs({ errors: validateRequest(raw).errors }); $('title').focus(); return; }
+  const req = normalize(raw);
+  const btn = $('dlPng'); const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Đang tạo PNG…';
+  try {
+    const { blob, W, H } = await rasterPng(req);
+    const name = `${slugify(req.title)}-${req.size}.png`;
+    download(blob, name);
+    showMsgs({ ok: `✅ Đã tải ${name} · ${W}×${H} · ${(blob.size / 1024).toFixed(0)} KB` });
+  } catch (e) {
+    showMsgs({ errors: ['Tải PNG lỗi: ' + e.message] });
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+$('dlPng').onclick = downloadPng;
+$('dlPng2').onclick = downloadPng;
+
+$('dlSvg').onclick = () => {
+  const req = normalize(readForm());
+  download(new Blob([buildSVG(req)], { type: 'image/svg+xml' }), `${slugify(req.title)}.svg`);
+  toast('Đã tải SVG');
+};
+$('openSvg').onclick = () => {
+  const req = normalize(readForm());
+  const url = URL.createObjectURL(new Blob([buildSVG(req)], { type: 'image/svg+xml' }));
+  window.open(url, '_blank', 'noopener');
+  setTimeout(() => URL.revokeObjectURL(url), 20000);
+};
+$('randomize').onclick = () => {
+  const themes = Object.keys(THEMES), layouts = Object.keys(LAYOUTS), patterns = Object.keys(PATTERNS);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  state.theme = pick(themes); state.layout = pick(layouts); state.pattern = pick(patterns);
+  update();
+  toast('Đã đổi kiểu ngẫu nhiên');
+};
+$('copyLink').onclick = () => {
+  const q = encodeShare(readForm());
+  const url = `${location.origin}${location.pathname}${q ? '?' + q : ''}`;
+  history.replaceState(null, '', q ? `?${q}` : location.pathname);
+  copyText(url, 'Đã copy link chia sẻ');
+};
+
+/* ---------------- dán yêu cầu nhanh ---------------- */
+$('pasteApply').onclick = () => {
+  const text = $('pasteInput').value.trim();
+  if (!text) { toast('Chưa có nội dung để điền'); return; }
+  let req = {};
+  if (text.startsWith('{')) {
+    try { req = JSON.parse(text); } catch { showMsgs({ errors: ['JSON không hợp lệ'] }); return; }
+  } else {
+    req = parseRequest({ title: '', body: text });
+  }
+  writeForm(req);
+  update();
+  showMsgs({ ok: 'Đã điền yêu cầu từ văn bản' });
+  $('pasteBox').open = false;
+};
+$('pasteExample').onclick = () => {
+  $('pasteInput').value = [
+    'Tiêu đề: 3 việc nên tự động hoá ngay',
+    'Phụ đề: Việc lặp lại;Việc dễ sai;Báo cáo định kỳ',
+    'Tác giả: VANHI',
+    'Kích thước: 1200x628',
+    'Theme: steel',
+    'Bố cục: list',
+    'Hoa tiết: grid',
+  ].join('\n');
+};
+
+/* ---------------- đăng nhập PAT + lưu gallery ---------------- */
 function session() {
   try {
     state.token = localStorage.getItem('hinh_gh_token');
     state.user = JSON.parse(localStorage.getItem('hinh_gh_user') || 'null');
   } catch { state.token = null; state.user = null; }
   const logged = !!(state.token && state.user);
+  $('authAnonymous').style.display = logged ? 'none' : 'flex';
+  $('authLogged').style.display = logged ? 'flex' : 'none';
+  $('mineBtn').style.display = logged ? '' : 'none';
   if (logged) {
     $('loginName').textContent = state.user.login;
     $('avatar').src = state.user.avatar_url || '';
     $('avatar').alt = state.user.login;
   }
-  $('authAnonymous').style.display = logged ? 'none' : 'flex';
-  $('authLogged').style.display = logged ? 'flex' : 'none';
-  $('mineBtn').style.display = logged ? '' : 'none';
-  $('goHint').textContent = logged
-    ? `Đã đăng nhập ${state.user.login} — ảnh được tạo issue thẳng qua API (không rời trang).`
-    : 'Chưa đăng nhập — nút này sẽ mở trang tạo issue của GitHub (phần duy nhất cần tài khoản). Tải PNG thì không cần gì.';
+  $('saveGallery').textContent = logged ? 'Lưu vào thư viện GitHub →' : 'Tạo issue trên GitHub →';
   renderGallery();
 }
-
 async function login() {
   const token = $('pat').value.trim();
-  if (!token) { showErr('Dán PAT trước đã.'); return; }
-  const btn = $('login'); btn.disabled = true; btn.textContent = 'Đang xác thực…';
+  if (!token) { toast('Dán PAT trước đã'); return; }
+  const btn = $('login'); btn.disabled = true; btn.textContent = 'Đang kiểm tra…';
   try {
-    const r = await fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } });
-    if (r.status === 401) throw new Error('Sai hoặc đã thu hồi token.');
-    if (!r.ok) throw new Error('GitHub trả lỗi ' + r.status);
+    const r = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    });
+    if (!r.ok) throw new Error(r.status === 401 ? 'Token sai hoặc đã bị thu hồi' : `GitHub trả lỗi ${r.status}`);
     const u = await r.json();
     state.token = token; state.user = u;
     localStorage.setItem('hinh_gh_token', token);
     localStorage.setItem('hinh_gh_user', JSON.stringify({ login: u.login, avatar_url: u.avatar_url }));
     $('pat').value = '';
-    if (!$('author').value.trim()) { $('author').value = u.login; redraw(); }
-    showOk(`✅ Đăng nhập thành công với tư cách ${u.login}`);
-    session();
+    if (!$('author').value.trim()) $('author').value = u.login;
+    session(); update();
+    toast('Đã đăng nhập ' + u.login);
   } catch (e) {
-    showErr('Đăng nhập lỗi: ' + e.message);
+    toast('Đăng nhập lỗi: ' + e.message);
   } finally {
     btn.disabled = false; btn.textContent = 'Đăng nhập';
   }
@@ -324,156 +1070,125 @@ $('logout').onclick = () => {
   localStorage.removeItem('hinh_gh_token');
   localStorage.removeItem('hinh_gh_user');
   state.token = null; state.user = null;
-  $('ok').style.display = 'none';
   session();
 };
 
-// ---------- tạo yêu cầu ----------
-async function createViaApi(req) {
-  const r = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${state.token}`,
-      Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ title: '[render] ' + req.title, body: bodyOf(req) }),
-  });
-  if (r.status === 401 || r.status === 403) throw new Error('Token không đủ quyền (cần scope repo).');
-  if (!r.ok) throw new Error('GitHub trả lỗi ' + r.status);
-  return r.json();
+function bodyOf(req) {
+  return [
+    `Tiêu đề: ${req.title}`,
+    req.subtitle && `Phụ đề: ${req.subtitle}`,
+    req.author && `Tác giả: ${req.author}`,
+    `Kích thước: ${req.size}`,
+    `Theme: ${req.theme}`,
+    `Bố cục: ${req.layout}`,
+    `Hoa tiết: ${req.pattern}`,
+    req.emoji && `Emoji: ${req.emoji}`,
+    req.footer && `Chú thích: ${req.footer}`,
+  ].filter(Boolean).join('\n');
 }
 
-function openIssuePage(req) {
-  const url = `https://github.com/${REPO}/issues/new` +
-    `?title=${encodeURIComponent('[render] ' + req.title)}` +
-    `&body=${encodeURIComponent(bodyOf(req))}`;
-  window.open(url, '_blank', 'noopener');
-}
-
-async function pollForResult(issueNumber, seen) {
-  for (let i = 0; i < 25; i++) {
-    await new Promise((r) => setTimeout(r, 6000));
-    try {
-      const m = await (await fetch(`gallery/manifest.json?t=${Date.now()}`)).json();
-      const found = (m.images || []).find((img) => String(img.issue) === String(issueNumber) && !seen.has(img.file));
-      if (found) {
-        showOk(`✅ Ảnh đã xong: ${found.file}`);
-        await loadGallery();
-        return;
-      }
-      const mine = (m.images || []).filter((img) => !seen.has(img.file));
-      if (mine.length) { await loadGallery(); }
-    } catch { /* thử lại */ }
-  }
-  showErr('Chưa thấy ảnh sau ~2.5 phút — kiểm tra tab Actions của repo.');
-}
-
-$('go').onclick = async () => {
-  const req = currentRequest();
-  if (!req.title) { showErr('Nhập tiêu đề trước đã.'); $('title').focus(); return; }
-  const btn = $('go'); btn.disabled = true;
+$('saveGallery').onclick = async () => {
+  const raw = readForm();
+  if (!validateRequest(raw).ok) { showMsgs({ errors: validateRequest(raw).errors }); return; }
+  const req = normalize(raw);
+  const btn = $('saveGallery'); btn.disabled = true;
   try {
     if (state.token && state.user) {
       const before = new Set(state.images.map((i) => i.file));
-      const issue = await createViaApi(req);
-      showOk(`Đã tạo issue #${issue.number} — đang chờ Actions render (~30s)…`);
-      pollForResult(issue.number, before);
+      const r = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${state.token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: '[render] ' + req.title, body: bodyOf(req) }),
+      });
+      if (!r.ok) throw new Error(r.status === 403 ? 'Token thiếu scope repo' : `GitHub trả lỗi ${r.status}`);
+      const issue = await r.json();
+      showMsgs({ ok: `Đã tạo issue #${issue.number} — Actions đang render (~30s)…` });
+      pollFor(issue.number, before);
     } else {
-      openIssuePage(req);
-      showOk('Đã mở trang tạo issue — bấm *Submit new issue* là Actions chạy.');
+      const url = `https://github.com/${REPO}/issues/new` +
+        `?title=${encodeURIComponent('[render] ' + req.title)}&body=${encodeURIComponent(bodyOf(req))}`;
+      window.open(url, '_blank', 'noopener');
+      showMsgs({ ok: 'Đã mở trang tạo issue — bấm “Submit new issue” là Actions chạy.' });
     }
   } catch (e) {
-    showErr('Tạo yêu cầu lỗi: ' + e.message);
+    showMsgs({ errors: ['Tạo yêu cầu lỗi: ' + e.message] });
   } finally {
     btn.disabled = false;
   }
 };
 
-function downloadBlob(blob, name) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);   // revoke ngay có thể hủy tải trên một số trình duyệt
+// Manifest đọc qua Contents API khi đã có PAT: Pages/raw bị CDN cache vài phút,
+// nên vừa lưu xong mà đọc bản cache sẽ tưởng Actions chưa chạy.
+async function readManifest() {
+  if (state.token) {
+    try {
+      const r = await fetch(
+        `https://api.github.com/repos/${REPO}/contents/gallery/manifest.json?ref=${BRANCH}&t=${Date.now()}`,
+        { headers: { Authorization: `Bearer ${state.token}`, Accept: 'application/vnd.github+json' } });
+      if (r.ok) {
+        const j = await r.json();
+        const bin = atob(String(j.content || '').replace(/\s/g, ''));
+        const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+        return JSON.parse(new TextDecoder().decode(bytes));
+      }
+    } catch { /* rơi về bản tĩnh */ }
+  }
+  return (await fetch(`gallery/manifest.json?t=${Date.now()}`)).json();
 }
 
-// Raster SVG → PNG ngay trên máy: không server, không token, không đăng nhập.
-// Khác Actions (dùng Noto Sans) ở chỗ font theo hệ thống — bố cục/cỡ chữ như nhau.
-async function rasterPng(req) {
-  const [W, H] = SIZES[req.size];
-  const svg = buildSVG(req);
-  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-  try {
-    const img = new Image();
-    await new Promise((res, rej) => {
-      img.onload = res;
-      img.onerror = () => rej(new Error('Trình duyệt không raster được SVG'));
-      img.src = url;
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    canvas.getContext('2d').drawImage(img, 0, 0, W, H);
-    const blob = await new Promise((res, rej) =>
-      canvas.toBlob((b) => (b ? res(b) : rej(new Error('Không tạo được PNG'))), 'image/png'));
-    return { blob, W, H };
-  } finally {
-    URL.revokeObjectURL(url);
+async function pollFor(issueNumber, seen) {
+  for (let i = 0; i < 25; i++) {
+    await new Promise((r) => setTimeout(r, 6000));
+    try {
+      const m = await readManifest();
+      const hit = (m.images || []).find((img) => String(img.issue) === String(issueNumber) && !seen.has(img.file));
+      if (hit) {
+        showMsgs({ ok: `✅ Ảnh đã xong: ${hit.file}` });
+        await loadGallery();
+        return;
+      }
+      await loadGallery();
+    } catch { /* thử lại */ }
   }
+  showMsgs({ warnings: ['Sau ~2,5 phút chưa thấy ảnh — kiểm tra tab Actions của repo.'] });
 }
 
-$('dlPng').onclick = async () => {
-  const req = currentRequest();
-  if (!req.title) { showErr('Nhập tiêu đề trước đã.'); $('title').focus(); return; }
-  const btn = $('dlPng'); const label = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Đang tạo PNG…';
-  try {
-    const { blob, W, H } = await rasterPng(req);
-    const name = `${slugify(req.title)}-${req.size}.png`;
-    downloadBlob(blob, name);
-    showOk(`✅ Đã tải ${name} · ${W}×${H} · ${(blob.size / 1024).toFixed(0)} KB — không cần đăng nhập, không qua server`);
-  } catch (e) {
-    showErr('Tải PNG lỗi: ' + e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = label;
-  }
-};
-
-$('dl').onclick = () => {
-  const req = currentRequest();
-  const svg = buildSVG({ ...req, title: req.title || 'Yêu cầu hình' });
-  downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${slugify(req.title || 'hinh')}.svg`);
-};
-
-// ---------- gallery ----------
+/* ---------------- gallery ---------------- */
 async function loadGallery() {
   try {
-    const m = await (await fetch(`gallery/manifest.json?t=${Date.now()}`)).json();
+    const m = await readManifest();
     state.images = m.images || [];
     renderGallery();
   } catch {
-    $('gallery').innerHTML = '<p class="empty">Chưa có hình nào — hãy tạo yêu cầu đầu tiên ☝️</p>';
+    $('gallery').innerHTML = '<p class="empty">Chưa đọc được manifest — mở thử trên GitHub.</p>';
   }
 }
-
 function renderGallery() {
   const g = $('gallery');
-  // lọc TRƯỚC khi cắt: nếu cắt trước thì mục "Của tôi" có thể hiện trống giả
-  // khi ảnh của bạn nằm sau 36 phần tử đầu của manifest (giữ 96)
   let items = state.images;
   if (state.filter === 'mine' && state.user) items = items.filter((i) => i.user === state.user.login);
-  items = items.slice(0, 36);
+  $('galleryCount').textContent = items.length ? `${items.length} hình` : '';
+  items = items.slice(0, 60);
   if (!items.length) {
-    g.innerHTML = `<p class="empty">${state.filter === 'mine' ? 'Bạn chưa có hình nào trong gallery.' : 'Chưa có hình nào — hãy tạo yêu cầu đầu tiên ☝️'}</p>`;
+    g.innerHTML = `<p class="empty">${state.filter === 'mine' ? 'Bạn chưa có hình nào trong thư viện.' : 'Chưa có hình nào — hãy tạo yêu cầu đầu tiên ☝️'}</p>`;
     return;
   }
-  g.innerHTML = items.map((i) => `
-    <a href="gallery/${encodeURIComponent(i.file)}" target="_blank" title="${esc(i.title)}">
-      <img src="gallery/${encodeURIComponent(i.file)}" alt="${esc(i.title)}" loading="lazy" />
-      <div class="meta">${esc(i.title)}${i.user ? ` · ${esc(i.user)}` : ''}</div>
-    </a>`).join('');
+  // Dùng bản SVG (~1 KB) làm ảnh thu nhỏ thay vì PNG (~100 KB): lưới tải nhanh
+  // gần như tức thì, nét ở mọi độ phân giải. Bầm vào vẫn mở PNG thật.
+  g.innerHTML = items.map((i) => {
+    const thumb = i.svg || i.file;
+    const meta = [i.theme, i.layout, i.size, i.pattern].filter(Boolean).map(esc).join(' · ');
+    return `
+    <a href="gallery/${encodeURIComponent(i.file)}" target="_blank" rel="noopener" title="${esc(i.title)}">
+      <img src="gallery/${encodeURIComponent(thumb)}" alt="${esc(i.title)}" loading="lazy" decoding="async" />
+      <div class="gm"><b>${esc(i.title)}</b><br>${meta}${i.user ? ' · ' + esc(i.user) : ''}</div>
+    </a>`;
+  }).join('');
 }
-
 document.querySelectorAll('.gbar [data-filter]').forEach((b) => {
   b.onclick = () => {
     state.filter = b.dataset.filter;
@@ -481,10 +1196,39 @@ document.querySelectorAll('.gbar [data-filter]').forEach((b) => {
     renderGallery();
   };
 });
-$('refreshBtn').onclick = loadGallery;
+$('refreshBtn').onclick = () => { loadGallery(); toast('Đang tải lại thư viện'); };
 
-session();
-loadGallery();
+/* ---------------- tab ---------------- */
+function setTab(name) {
+  state.tab = name;
+  for (const t of document.querySelectorAll('.tab')) t.classList.toggle('active', t.dataset.tab === name);
+  for (const p of document.querySelectorAll('.panel')) p.classList.toggle('active', p.id === `panel-${name}`);
+  history.replaceState(null, '', name === 'create' ? location.pathname + location.search : `#${name}`);
+  if (name === 'gallery') loadGallery();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+for (const t of document.querySelectorAll('.tab')) t.onclick = () => setTab(t.dataset.tab);
+if (location.hash === '#gallery') setTab('gallery');
+else if (location.hash === '#agent') setTab('agent');
+
+/* ---------------- copy snippet + bàn phím ---------------- */
+for (const b of document.querySelectorAll('[data-copy]')) {
+  b.onclick = () => {
+    const el = $(b.dataset.copy);
+    if (el) copyText(el.textContent.trim(), 'Đã copy — dán vào terminal');
+  };
+}
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); downloadPng(); }
+});
+
+/* ---------------- khởi động ---------------- */
+for (const id of ['title', 'subtitle', 'author', 'footer', 'emoji']) {
+  $(id).addEventListener('input', () => { state.touched = true; update(); });
+}
+const restored = restore();
+if (restored) writeForm(restored); else writeForm({ title: '', subtitle: '', author: '', footer: '', emoji: '' });
+syncActive(); update(); session(); loadGallery();
 </script>
 </body>
 </html>

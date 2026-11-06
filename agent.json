@@ -1,0 +1,847 @@
+{
+  "name": "hinh-bang-code",
+  "version": "2.0.0",
+  "summary": "Sinh ảnh mạng xã hội bằng code: SVG thuần → PNG. Không cần API key để tạo ảnh cục bộ; dùng GitHub Actions để render và lưu ảnh công khai.",
+  "locale": "vi",
+  "site": "https://vanthuonghi.github.io/hinh-bang-code",
+  "repo": "vanthuonghi/hinh-bang-code",
+  "branch": "main",
+  "docs": {
+    "agent_page": "https://vanthuonghi.github.io/hinh-bang-code/agent.html",
+    "llms_txt": "https://vanthuonghi.github.io/hinh-bang-code/llms.txt",
+    "this_file": "https://vanthuonghi.github.io/hinh-bang-code/agent.json",
+    "readme": "https://github.com/vanthuonghi/hinh-bang-code#readme",
+    "source_lib": "https://github.com/vanthuonghi/hinh-bang-code/blob/main/lib/svg.js"
+  },
+  "entrypoints": {
+    "local_js": {
+      "install": "Không cần cài — import trực tiếp file trong repo (ESM, không dependency).",
+      "import": "import { buildSVG, normalize, validateRequest } from './lib/svg.js'",
+      "output": "buildSVG(req) trả về chuỗi SVG (string). Thêm sharp để ra PNG."
+    },
+    "cli": {
+      "command": "node bin/hinh.mjs",
+      "requires": "Node >= 20, GITHUB_TOKEN (scope repo + workflow) hoặc `gh auth login`",
+      "commands": {
+        "new": "node bin/hinh.mjs new --title \"Tiêu đề\" --theme aurora --layout hero --size 1200x630 --wait --out ./anh",
+        "preset": "node bin/hinh.mjs new --preset lo-trinh --title \"Lộ trình 3 bước\" --wait",
+        "catalog": "node bin/hinh.mjs catalog --json",
+        "list": "node bin/hinh.mjs list --n 10 --json",
+        "get": "node bin/hinh.mjs get <ten-file.png> --out ./anh",
+        "status": "node bin/hinh.mjs status --json"
+      }
+    },
+    "github_actions": {
+      "dispatch": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches",
+        "headers": {
+          "Authorization": "Bearer $GITHUB_TOKEN",
+          "Accept": "application/vnd.github+json"
+        },
+        "body": {
+          "ref": "refs/heads/main",
+          "inputs": {
+            "title": "Tiêu đề",
+            "theme": "aurora",
+            "layout": "hero",
+            "size": "1200x630"
+          }
+        },
+        "notes": [
+          "Thiếu \"ref\" sẽ trả 422.",
+          "Run được xếp hàng tuần tự (concurrency), không chạy song song."
+        ]
+      },
+      "issue": {
+        "url": "https://github.com/vanthuonghi/hinh-bang-code/issues/new",
+        "rule": "Tiêu đề issue bắt đầu bằng \"[render]\". Thân issue dạng \"Khoá: giá trị\", mỗi dòng một khoá.",
+        "result_comment": "Mỗi issue được trả về một comment kèm ảnh và một khối ```json {ok,file,svg,png_url,svg_url,title,theme,layout,size,pattern,issue,run_id,run_url} — agent parse khối đó thay vì bóc chữ.",
+        "body_example": "[render] 3 việc nên tự động hoá ngay\n\nTiêu đề: 3 việc nên tự động hoá ngay\nPhụ đề: Việc lặp lại;Việc dễ sai;Báo cáo định kỳ\nTác giả: VANHI\nKích thước: 1200x628\nTheme: steel\nBố cục: list\nHoa tiết: grid"
+      },
+      "read_result": {
+        "manifest": "https://raw.githubusercontent.com/vanthuonghi/hinh-bang-code/main/gallery/manifest.json",
+        "png": "https://github.com/vanthuonghi/hinh-bang-code/raw/main/gallery/{file}",
+        "svg": "https://github.com/vanthuonghi/hinh-bang-code/raw/main/gallery/{svg}",
+        "manifest_contents_api": "https://api.github.com/repos/vanthuonghi/hinh-bang-code/contents/gallery/manifest.json?ref=main",
+        "manifest_cache_note": "raw.githubusercontent.com bị CDN cache tới ~5 phút; Contents API luôn trả bản mới nhất.",
+        "runs": "https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/runs?event=workflow_dispatch&per_page=20",
+        "manifest_fields": [
+          "file",
+          "svg",
+          "title",
+          "theme",
+          "layout",
+          "size",
+          "pattern",
+          "issue",
+          "user",
+          "date"
+        ]
+      }
+    },
+    "browser": {
+      "url": "https://vanthuonghi.github.io/hinh-bang-code",
+      "notes": "Tải PNG/SVG ngay trong trình duyệt, không cần đăng nhập. Trang giữ yêu cầu trong URL (?t=…&th=…&l=…&sz=…&p=…) để chia sẻ."
+    }
+  },
+  "inputs": [
+    {
+      "key": "title",
+      "label": "Tiêu đề",
+      "type": "string",
+      "required": true,
+      "max": 120,
+      "description": "Nội dung chính của ảnh. Chữ tự xuống dòng và tự thu nhỏ để vừa khung.",
+      "example": "3 việc nên tự động hoá ngay"
+    },
+    {
+      "key": "subtitle",
+      "label": "Phụ đề",
+      "type": "string",
+      "required": false,
+      "max": 160,
+      "description": "Một câu bổ trợ. Với layout list/timeline, mỗi mục cách nhau bằng dấu \";\" hoặc \"|\".",
+      "example": "Việc lặp lại;Việc dễ sai;Báo cáo định kỳ"
+    },
+    {
+      "key": "author",
+      "label": "Tác giả / nhãn",
+      "type": "string",
+      "required": false,
+      "max": 40,
+      "description": "Dòng nhỏ trên cùng; thành avatar/nhãn xoay với layout story/sticker/quote.",
+      "example": "VANHI"
+    },
+    {
+      "key": "theme",
+      "label": "Bảng màu",
+      "type": "enum",
+      "required": false,
+      "default": "sunset",
+      "description": "Khoá trong catalog.themes. Giá trị lạ tự fallback về sunset.",
+      "example": "aurora"
+    },
+    {
+      "key": "layout",
+      "label": "Bố cục",
+      "type": "enum",
+      "required": false,
+      "default": "left",
+      "description": "Khoá trong catalog.layouts. Giá trị lạ tự fallback về left.",
+      "example": "list"
+    },
+    {
+      "key": "size",
+      "label": "Kích thước",
+      "type": "enum",
+      "required": false,
+      "default": "1200x630",
+      "description": "Khoá dạng \"RxC\" trong catalog.sizes. Giá trị lạ tự fallback về 1200x630.",
+      "example": "1080x1350"
+    },
+    {
+      "key": "pattern",
+      "label": "Hoa tiết nền",
+      "type": "enum",
+      "required": false,
+      "default": "orb",
+      "description": "Khoá trong catalog.patterns. Giá trị lạ tự fallback về orb.",
+      "example": "grid"
+    },
+    {
+      "key": "emoji",
+      "label": "Emoji",
+      "type": "string",
+      "required": false,
+      "max": 8,
+      "description": "Một emoji, hiện lớn phía trên tiêu đề (trừ quote/sticker/terminal/story).",
+      "example": "🚀"
+    },
+    {
+      "key": "footer",
+      "label": "Chú thích",
+      "type": "string",
+      "required": false,
+      "max": 80,
+      "description": "Dòng chữ nhỏ góc dưới trái. Để trống thì ảnh KHÔNG có dòng nào ở đáy.",
+      "example": "vanthuonghi.com"
+    }
+  ],
+  "fallbacks": {
+    "note": "Mọi input đều được chuẩn hoá: giá trị lạ/thiếu không gây lỗi, chỉ về mặc định.",
+    "theme": "sunset",
+    "layout": "left",
+    "size": "1200x630",
+    "pattern": "orb",
+    "title": "Yêu cầu hình",
+    "max_lengths": {
+      "title": 120,
+      "subtitle": 160,
+      "author": 40,
+      "footer": 80
+    }
+  },
+  "catalog": {
+    "themes": [
+      {
+        "key": "sunset",
+        "label": "Hoàng hôn",
+        "from": "#ff7e5f",
+        "to": "#feb47b"
+      },
+      {
+        "key": "ocean",
+        "label": "Đại dương",
+        "from": "#1b3a6b",
+        "to": "#4b9fe1"
+      },
+      {
+        "key": "forest",
+        "label": "Rừng sâu",
+        "from": "#143d2b",
+        "to": "#4f9d69"
+      },
+      {
+        "key": "midnight",
+        "label": "Nửa đêm",
+        "from": "#141428",
+        "to": "#3b2f63"
+      },
+      {
+        "key": "violet",
+        "label": "Tím mộng",
+        "from": "#6a3be0",
+        "to": "#c86dd7"
+      },
+      {
+        "key": "paper",
+        "label": "Giấy cũ",
+        "from": "#f7f4ee",
+        "to": "#e7ded0"
+      },
+      {
+        "key": "coral",
+        "label": "San hô",
+        "from": "#ff5f6d",
+        "to": "#ffc371"
+      },
+      {
+        "key": "mint",
+        "label": "Bạc hà",
+        "from": "#0ba360",
+        "to": "#3cba92"
+      },
+      {
+        "key": "sand",
+        "label": "Cát vàng",
+        "from": "#f5e6ca",
+        "to": "#d9b978"
+      },
+      {
+        "key": "ink",
+        "label": "Mực đêm",
+        "from": "#16181d",
+        "to": "#3a3f4b"
+      },
+      {
+        "key": "aurora",
+        "label": "Cực quang",
+        "from": "#1a2980",
+        "to": "#26d0ce"
+      },
+      {
+        "key": "rose",
+        "label": "Hồng đào",
+        "from": "#f953c6",
+        "to": "#b91d73"
+      },
+      {
+        "key": "citrus",
+        "label": "Chanh cam",
+        "from": "#ffd93d",
+        "to": "#ff8c42"
+      },
+      {
+        "key": "steel",
+        "label": "Thép xanh",
+        "from": "#485563",
+        "to": "#29323c"
+      },
+      {
+        "key": "grape",
+        "label": "Nho chín",
+        "from": "#7048e8",
+        "to": "#b197fc"
+      },
+      {
+        "key": "blush",
+        "label": "Má hồng",
+        "from": "#ffe5ec",
+        "to": "#ffc2d1"
+      },
+      {
+        "key": "blueprint",
+        "label": "Bản vẽ kỹ thuật",
+        "from": "#0f2027",
+        "to": "#2c5364"
+      },
+      {
+        "key": "clay",
+        "label": "Đất nung",
+        "from": "#c79081",
+        "to": "#dfa579"
+      },
+      {
+        "key": "galaxy",
+        "label": "Dải ngân hà",
+        "from": "#10122b",
+        "to": "#5b2c83"
+      },
+      {
+        "key": "eclipse",
+        "label": "Nhật thực",
+        "from": "#0b0f19",
+        "to": "#2a1b4d"
+      },
+      {
+        "key": "lagoon",
+        "label": "Vũng ngọc",
+        "from": "#00b4db",
+        "to": "#0083b0"
+      },
+      {
+        "key": "ember",
+        "label": "Than hồng",
+        "from": "#2b0a0a",
+        "to": "#b33c1a"
+      },
+      {
+        "key": "cocoa",
+        "label": "Ca cao",
+        "from": "#3e2723",
+        "to": "#8d6e63"
+      },
+      {
+        "key": "sakura",
+        "label": "Anh đào",
+        "from": "#ffe3ef",
+        "to": "#ffb3cd"
+      },
+      {
+        "key": "peach",
+        "label": "Đào mật",
+        "from": "#ffc3a0",
+        "to": "#ff9db6"
+      },
+      {
+        "key": "ice",
+        "label": "Băng giá",
+        "from": "#e3ecfb",
+        "to": "#b6ccf7"
+      },
+      {
+        "key": "lemon",
+        "label": "Chanh vàng",
+        "from": "#f6f3a8",
+        "to": "#e0d24a"
+      },
+      {
+        "key": "moss",
+        "label": "Rêu xanh",
+        "from": "#22361a",
+        "to": "#7ba05b"
+      },
+      {
+        "key": "noir",
+        "label": "Đen tuyền",
+        "from": "#050506",
+        "to": "#26262b"
+      },
+      {
+        "key": "mono",
+        "label": "Xám tối giản",
+        "from": "#fafafa",
+        "to": "#d5d5db"
+      }
+    ],
+    "layouts": [
+      {
+        "key": "left",
+        "label": "Mặc định",
+        "hint": "An toàn nhất cho mọi nội dung. Tiêu đề trái, phụ đề ngay dưới.",
+        "subtitle_hint": "Một câu mô tả ngắn."
+      },
+      {
+        "key": "center",
+        "label": "Căn giữa",
+        "hint": "Căn giữa, hợp câu thông điệp ngắn và ảnh đăng feed.",
+        "subtitle_hint": "Một câu ngắn (dưới 90 ký tự)."
+      },
+      {
+        "key": "hero",
+        "label": "Hero lớn",
+        "hint": "Tiêu đề rất lớn + gạch nhấn màu. Hợp thông báo, cover, thumbnail.",
+        "subtitle_hint": "Một dòng bổ trợ, có thể bỏ trống."
+      },
+      {
+        "key": "quote",
+        "label": "Thẻ quote",
+        "hint": "Dấu ngoặc kép lớn + tên tác giả ở dưới. Hợp trích dẫn.",
+        "subtitle_hint": "Để trống; dùng \"Tác giả\" cho phần ký tên."
+      },
+      {
+        "key": "split",
+        "label": "Chia đôi",
+        "hint": "Chữ bên trái, khối màu bên phải. Hợp bài viết có tiêu đề dài.",
+        "subtitle_hint": "Một câu mô tả ngắn."
+      },
+      {
+        "key": "list",
+        "label": "Danh sách",
+        "hint": "Phụ đề tách theo dấu ; hoặc | thành các mục đánh số.",
+        "subtitle_hint": "Ví dụ: Tự động hoá việc lặp;Đo lường kết quả;Lan toả nội bộ"
+      },
+      {
+        "key": "timeline",
+        "label": "Lộ trình",
+        "hint": "Các mục thành lộ trình dọc có đường nối, tối đa 5 bước.",
+        "subtitle_hint": "Ví dụ: Khảo sát;Thử nghiệm;Nhân rộng"
+      },
+      {
+        "key": "number",
+        "label": "Số lớn",
+        "hint": "Tách số đầu tiên trong tiêu đề ra làm số lớn (vd \"40%\").",
+        "subtitle_hint": "Một câu giải thích con số."
+      },
+      {
+        "key": "sticker",
+        "label": "Thẻ sticker",
+        "hint": "Khung viền đậm + nhãn tác giả xoay góc. Hợp ảnh bìa vui.",
+        "subtitle_hint": "Một câu ngắn."
+      },
+      {
+        "key": "card",
+        "label": "Thẻ nổi",
+        "hint": "Thẻ nổi bo tròn trên nền gradient, có đổ bóng.",
+        "subtitle_hint": "Một câu ngắn, tối đa 2 dòng."
+      },
+      {
+        "key": "minimal",
+        "label": "Tối giản",
+        "hint": "Rất nhiều khoảng trắng, gạch nhấn mảnh. Hợp ảnh sang, ít chữ.",
+        "subtitle_hint": "Một dòng phụ đề ngắn hoặc để trống."
+      },
+      {
+        "key": "terminal",
+        "label": "Terminal",
+        "hint": "Cửa sổ terminal với 3 nút màu, chữ monospace. Hợp nội dung dev.",
+        "subtitle_hint": "Một dòng lệnh hoặc mô tả ngắn."
+      },
+      {
+        "key": "story",
+        "label": "Story",
+        "hint": "Thanh tiến trình trên cùng + avatar chữ cái đầu của tác giả.",
+        "subtitle_hint": "Một câu ngắn; cần \"Tác giả\" để có avatar."
+      }
+    ],
+    "sizes": [
+      {
+        "key": "1200x630",
+        "label": "Link FB",
+        "width": 1200,
+        "height": 630,
+        "use": "Link share Facebook / OG image"
+      },
+      {
+        "key": "1200x1200",
+        "label": "Bài FB vuông",
+        "width": 1200,
+        "height": 1200,
+        "use": "Bài đăng feed vuông (FB/IG)"
+      },
+      {
+        "key": "1080x1350",
+        "label": "FB dọc 4:5",
+        "width": 1080,
+        "height": 1350,
+        "use": "Feed dọc 4:5 — tỷ lệ đẹp nhất trên FB/IG"
+      },
+      {
+        "key": "1080x1920",
+        "label": "Story FB",
+        "width": 1080,
+        "height": 1920,
+        "use": "Story / Reel"
+      },
+      {
+        "key": "1640x624",
+        "label": "Bìa FB",
+        "width": 1640,
+        "height": 624,
+        "use": "Ảnh bìa trang Facebook"
+      },
+      {
+        "key": "1200x628",
+        "label": "LinkedIn ngang",
+        "width": 1200,
+        "height": 628,
+        "use": "Bài LinkedIn / X (ngang)"
+      },
+      {
+        "key": "1200x1500",
+        "label": "LinkedIn dọc",
+        "width": 1200,
+        "height": 1500,
+        "use": "Bài LinkedIn dọc 4:5"
+      },
+      {
+        "key": "1280x720",
+        "label": "YouTube",
+        "width": 1280,
+        "height": 720,
+        "use": "Thumbnail YouTube"
+      },
+      {
+        "key": "1920x1080",
+        "label": "Slide 16:9",
+        "width": 1920,
+        "height": 1080,
+        "use": "Slide 16:9 full HD"
+      },
+      {
+        "key": "1600x900",
+        "label": "Slide HD",
+        "width": 1600,
+        "height": 900,
+        "use": "Slide 16:9 nhẹ"
+      },
+      {
+        "key": "1000x1500",
+        "label": "Pinterest",
+        "width": 1000,
+        "height": 1500,
+        "use": "Pinterest (2:3)"
+      },
+      {
+        "key": "800x1000",
+        "label": "Share dọc",
+        "width": 800,
+        "height": 1000,
+        "use": "Share dọc Zalo / Messenger"
+      },
+      {
+        "key": "1080x1080",
+        "label": "Vuông",
+        "width": 1080,
+        "height": 1080,
+        "use": "Ảnh vuông chung"
+      },
+      {
+        "key": "800x800",
+        "label": "Nhỏ",
+        "width": 800,
+        "height": 800,
+        "use": "Ảnh nhỏ, icon, preview"
+      },
+      {
+        "key": "1080x608",
+        "label": "Link FB nhỏ",
+        "width": 1080,
+        "height": 608,
+        "use": "Link Facebook tỷ lệ 1.91:1 (nhẹ)"
+      }
+    ],
+    "patterns": [
+      {
+        "key": "orb",
+        "label": "Quầng sáng"
+      },
+      {
+        "key": "dots",
+        "label": "Chấm lưới"
+      },
+      {
+        "key": "grid",
+        "label": "Kẻ ô"
+      },
+      {
+        "key": "waves",
+        "label": "Sóng"
+      },
+      {
+        "key": "beams",
+        "label": "Vệt sáng"
+      },
+      {
+        "key": "rings",
+        "label": "Vòng đồng tâm"
+      },
+      {
+        "key": "blobs",
+        "label": "Mảng mềm"
+      },
+      {
+        "key": "confetti",
+        "label": "Confetti"
+      },
+      {
+        "key": "none",
+        "label": "Trơn"
+      }
+    ],
+    "presets": [
+      {
+        "key": "bai-viet",
+        "label": "Bài FB dọc 4:5",
+        "theme": "rose",
+        "pattern": "orb",
+        "layout": "split",
+        "size": "1080x1350"
+      },
+      {
+        "key": "bia-fb",
+        "label": "Bìa trang FB",
+        "theme": "sunset",
+        "pattern": "beams",
+        "layout": "number",
+        "size": "1640x624"
+      },
+      {
+        "key": "story",
+        "label": "Story FB",
+        "theme": "midnight",
+        "pattern": "orb",
+        "layout": "story",
+        "size": "1080x1920"
+      },
+      {
+        "key": "trich-dan",
+        "label": "Thẻ trích dẫn",
+        "theme": "paper",
+        "pattern": "none",
+        "layout": "quote",
+        "size": "1200x1200"
+      },
+      {
+        "key": "linkedin",
+        "label": "Bài LinkedIn",
+        "theme": "steel",
+        "pattern": "grid",
+        "layout": "list",
+        "size": "1200x628"
+      },
+      {
+        "key": "youtube",
+        "label": "Thumbnail YouTube",
+        "theme": "coral",
+        "pattern": "confetti",
+        "layout": "sticker",
+        "size": "1280x720"
+      },
+      {
+        "key": "hero",
+        "label": "Hero thông báo",
+        "theme": "aurora",
+        "pattern": "waves",
+        "layout": "hero",
+        "size": "1200x630"
+      },
+      {
+        "key": "toi-gian",
+        "label": "Tối giản sang",
+        "theme": "paper",
+        "pattern": "none",
+        "layout": "minimal",
+        "size": "1200x1500"
+      },
+      {
+        "key": "the-noi",
+        "label": "Thẻ nổi",
+        "theme": "galaxy",
+        "pattern": "rings",
+        "layout": "card",
+        "size": "1200x1200"
+      },
+      {
+        "key": "lo-trinh",
+        "label": "Lộ trình 3 bước",
+        "theme": "lagoon",
+        "pattern": "dots",
+        "layout": "timeline",
+        "size": "1080x1350"
+      },
+      {
+        "key": "terminal",
+        "label": "Khung terminal",
+        "theme": "noir",
+        "pattern": "none",
+        "layout": "terminal",
+        "size": "1200x630"
+      },
+      {
+        "key": "pinterest",
+        "label": "Pinterest 2:3",
+        "theme": "sakura",
+        "pattern": "blobs",
+        "layout": "hero",
+        "size": "1000x1500"
+      }
+    ],
+    "examples": [
+      {
+        "key": "thoi-quen",
+        "label": "Thói quen buổi sáng",
+        "title": "5 phút mỗi sáng thay đổi ngày của bạn",
+        "subtitle": "Một nghi thức nhỏ, hiệu quả bất ngờ",
+        "author": "VANHI",
+        "theme": "sunset",
+        "layout": "left",
+        "size": "1080x1350",
+        "pattern": "orb"
+      },
+      {
+        "key": "tu-dong",
+        "label": "Tự động hoá",
+        "title": "3 việc nên tự động hoá ngay",
+        "subtitle": "Việc lặp lại;Việc dễ sai;Báo cáo định kỳ",
+        "author": "VANHI",
+        "theme": "steel",
+        "layout": "list",
+        "size": "1200x628",
+        "pattern": "grid"
+      },
+      {
+        "key": "so-lieu",
+        "label": "Số liệu ấn tượng",
+        "title": "tiết kiệm 12 giờ mỗi tuần",
+        "subtitle": "Sau khi chuyển quy trình giấy tờ sang tự động",
+        "author": "BÁO CÁO",
+        "theme": "ocean",
+        "layout": "number",
+        "size": "1200x1200",
+        "pattern": "orb"
+      },
+      {
+        "key": "trich-dan",
+        "label": "Trích dẫn",
+        "title": "Cách tốt nhất để dự đoán tương lai là tạo ra nó",
+        "subtitle": "",
+        "author": "Alan Kay",
+        "theme": "paper",
+        "layout": "quote",
+        "size": "1200x1200",
+        "pattern": "none"
+      },
+      {
+        "key": "ra-mat",
+        "label": "Ra mắt sản phẩm",
+        "title": "Bản cập nhật 2.0 đã sẵn sàng",
+        "subtitle": "Nhanh hơn gấp đôi, vẫn miễn phí",
+        "author": "HINH BẰNG CODE",
+        "theme": "aurora",
+        "layout": "hero",
+        "size": "1200x630",
+        "pattern": "waves"
+      },
+      {
+        "key": "lo-trinh",
+        "label": "Lộ trình",
+        "title": "Lộ trình 3 bước để bắt đầu",
+        "subtitle": "Khảo sát hiện trạng;Chọn một việc lặp lại;Đo kết quả sau 2 tuần",
+        "author": "VANHI",
+        "theme": "lagoon",
+        "layout": "timeline",
+        "size": "1080x1350",
+        "pattern": "dots"
+      }
+    ],
+    "groups": {
+      "sizes": [
+        {
+          "label": "Facebook",
+          "keys": [
+            "1200x630",
+            "1200x1200",
+            "1080x1350",
+            "1080x1920",
+            "1640x624"
+          ]
+        },
+        {
+          "label": "LinkedIn / X",
+          "keys": [
+            "1200x628",
+            "1200x1500"
+          ]
+        },
+        {
+          "label": "YouTube / slide",
+          "keys": [
+            "1280x720",
+            "1920x1080",
+            "1600x900"
+          ]
+        },
+        {
+          "label": "Pinterest / Zalo",
+          "keys": [
+            "1000x1500",
+            "800x1000"
+          ]
+        },
+        {
+          "label": "Khác",
+          "keys": [
+            "1080x1080",
+            "800x800",
+            "1080x608"
+          ]
+        }
+      ],
+      "layouts": [
+        {
+          "label": "Cơ bản",
+          "keys": [
+            "left",
+            "center",
+            "hero",
+            "minimal",
+            "card"
+          ]
+        },
+        {
+          "label": "Nhiều nội dung",
+          "keys": [
+            "list",
+            "timeline",
+            "number",
+            "split"
+          ]
+        },
+        {
+          "label": "Trang trí",
+          "keys": [
+            "quote",
+            "sticker",
+            "terminal",
+            "story"
+          ]
+        }
+      ]
+    }
+  },
+  "limits": {
+    "max_bullets": 5,
+    "min_title_font_px": 14,
+    "manifest_entries": 96,
+    "gallery_commit": "Actions commit ảnh + manifest.json; chờ ~30 giây sau khi dispatch.",
+    "fonts": "Actions cài fonts-noto-core; trình duyệt dùng font hệ thống nên nét chữ hơi khác."
+  },
+  "errors": {
+    "422 dispatch": "Thiếu \"ref\" hoặc workflow không có ở nhánh đó → dùng refs/heads/main.",
+    "403/404": "Token thiếu scope repo + workflow.",
+    "manifest chưa có ảnh": "Commit của Actions chưa xong — chờ vài giây, đọc lại manifest, lọc theo date và title.",
+    "trùng run": "Lọc run theo created_at >= thời điểm dispatch; chọn run cũ nhất trong số đó."
+  }
+}

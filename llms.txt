@@ -1,0 +1,60 @@
+# Sinh hình bằng code (hinh-bang-code) v2.0.0
+
+> Trang tĩnh + GitHub Actions sinh ảnh mạng xã hội từ yêu cầu văn bản.
+> SVG → PNG bằng code, không cần thiết kế. Có API, CLI và thư viện JS cho agent.
+> Tạo ảnh cục bộ KHÔNG cần token. Chỉ nhánh lưu ảnh lên GitHub mới cần token.
+
+## Dùng nhanh nhất (không cần token)
+- Thư viện JS: import { buildSVG, normalize } from './lib/svg.js' → buildSVG(req) trả về chuỗi SVG.
+- Không có repo trên máy? Nạp thẳng file từ URL (ESM thuần, không import gì):
+  const src = await (await fetch('https://raw.githubusercontent.com/vanthuonghi/hinh-bang-code/main/lib/svg.js')).text();
+  const { buildSVG, normalize, validateRequest } = await import(`data:text/javascript;charset=utf-8,${encodeURIComponent(src)}`);
+- Trang web: https://vanthuonghi.github.io/hinh-bang-code — nhập tiêu đề rồi tải PNG/SVG ngay trong trình duyệt.
+- Máy đọc danh mục đầy đủ: https://vanthuonghi.github.io/hinh-bang-code/agent.json
+
+## Render qua GitHub Actions (cần token scope repo + workflow)
+POST https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/dispatches
+Authorization: Bearer $GITHUB_TOKEN
+Content-Type: application/json
+
+{"ref":"refs/heads/main","inputs":{"title":"Tiêu đề","subtitle":"Phụ đề","author":"VANHI","theme":"aurora","layout":"hero","size":"1200x630","pattern":"orb","emoji":"🚀"}}
+
+Kết quả: https://api.github.com/repos/vanthuonghi/hinh-bang-code/contents/gallery/manifest.json?ref=main
+         (raw.githubusercontent.com bị CDN cache ~5 phút — đừng dùng để poll)
+Ảnh:      https://github.com/vanthuonghi/hinh-bang-code/raw/main/gallery/{file}
+Run:      https://api.github.com/repos/vanthuonghi/hinh-bang-code/actions/workflows/render.yml/runs?per_page=20
+Lưu ý: thiếu "ref" → 422. Run xếp hàng tuần tự, chờ ~30s. Lọc ảnh mới theo "date" và khớp "title".
+
+## Hoặc mở issue (không cần token trên máy)
+Tiêu đề: [render] Tiêu đề hình
+Thân: mỗi dòng "Khoá: giá trị" — Tiêu đề / Phụ đề / Tác giả / Kích thước / Theme / Bố cục / Hoa tiết / Emoji / Chú thích.
+URL: https://github.com/vanthuonghi/hinh-bang-code/issues/new
+Kết quả: comment trong issue có ảnh + khối ```json {ok,file,svg,png_url,svg_url,title,theme,layout,size,pattern,issue,run_id,run_url}.
+
+## Hoặc dùng CLI trong repo
+node bin/hinh.mjs new --title "Tiêu đề" --theme aurora --layout hero --size 1200x630 --wait --out ./anh
+node bin/hinh.mjs new --preset lo-trinh --title "Lộ trình" --wait
+node bin/hinh.mjs catalog --json
+node bin/hinh.mjs list --n 10 --json
+node bin/hinh.mjs get <ten-file.png> --out ./anh
+node bin/hinh.mjs status --json
+(node >= 20; auth: GITHUB_TOKEN / GH_TOKEN / gh auth token; repo: --repo hoặc HINH_REPO)
+
+## Trường đầu vào
+title    string  BẮT BUỘC, ≤120 ký tự. Nội dung chính.
+subtitle string  ≤160. Với layout list/timeline: các mục cách nhau bằng ";" hoặc "|".
+author   string  ≤40. Nhãn nhỏ trên cùng; avatar/nhãn với story, sticker, quote.
+theme    enum    sunset, ocean, forest, midnight, violet, paper, coral, mint, sand, ink, aurora, rose, citrus, steel, grape, blush, blueprint, clay, galaxy, eclipse, lagoon, ember, cocoa, sakura, peach, ice, lemon, moss, noir, mono
+layout   enum    left, center, hero, quote, split, list, timeline, number, sticker, card, minimal, terminal, story
+size     enum    1200x630, 1200x1200, 1080x1350, 1080x1920, 1640x624, 1200x628, 1200x1500, 1280x720, 1920x1080, 1600x900, 1000x1500, 800x1000, 1080x1080, 800x800, 1080x608
+pattern  enum    orb, dots, grid, waves, beams, rings, blobs, confetti, none
+emoji    string  ≤8. Một emoji, hiện lớn trên tiêu đề (trừ quote/sticker/terminal/story).
+footer   string  ≤80. Chú thích góc dưới trái.
+
+Sai enum hoặc thiếu trường → tự fallback (sunset/left/1200x630/orb), không bao giờ lỗi render.
+
+## Quy ước
+- Tiếng Việt có dấu được hỗ trợ đầy đủ; XML được escape an toàn.
+- Chữ tự động xuống dòng + thu nhỏ để không tràn khung; tiêu đề nên ≤ 60 ký tự để chữ to, đẹp.
+- Manifest giữ 96 mục gần nhất; ảnh cũ vẫn nằm trong gallery/.
+- Repo: https://github.com/vanthuonghi/hinh-bang-code · Trang hướng dẫn cho agent: https://vanthuonghi.github.io/hinh-bang-code/agent.html

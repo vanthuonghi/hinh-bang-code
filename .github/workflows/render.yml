@@ -32,9 +32,19 @@ on:
         default: 'sunset'
         type: string
       layout:
-        description: 'Bố cục: left, center, quote, split, list, number, sticker, terminal, story'
+        description: 'Bố cục: left, center, hero, quote, split, list, timeline, number, sticker, card, minimal, terminal, story'
         required: false
         default: 'left'
+        type: string
+      pattern:
+        description: 'Hoa tiết nền: orb, dots, grid, waves, beams, rings, blobs, confetti, none'
+        required: false
+        default: 'orb'
+        type: string
+      emoji:
+        description: 'Một emoji hiện lớn phía trên tiêu đề (có thể bỏ trống)'
+        required: false
+        default: ''
         type: string
       footer:
         description: 'Chú thích góc dưới'
@@ -96,6 +106,8 @@ jobs:
           D_SIZE: ${{ inputs.size }}
           D_THEME: ${{ inputs.theme }}
           D_LAYOUT: ${{ inputs.layout }}
+          D_PATTERN: ${{ inputs.pattern }}
+          D_EMOJI: ${{ inputs.emoji }}
           D_FOOTER: ${{ inputs.footer }}
         run: |
           set -euo pipefail
@@ -119,6 +131,8 @@ jobs:
               if [ -n "${D_SIZE:-}" ]; then echo "Kích thước: $D_SIZE"; fi
               if [ -n "${D_THEME:-}" ]; then echo "Theme: $D_THEME"; fi
               if [ -n "${D_LAYOUT:-}" ]; then echo "Bố cục: $D_LAYOUT"; fi
+              if [ -n "${D_PATTERN:-}" ]; then echo "Hoa tiết: $D_PATTERN"; fi
+              if [ -n "${D_EMOJI:-}" ]; then echo "Emoji: $D_EMOJI"; fi
               if [ -n "${D_FOOTER:-}" ]; then echo "Chú thích: $D_FOOTER"; fi
               echo "$EOFMARK"
             } >> "$GITHUB_ENV"
@@ -169,17 +183,43 @@ jobs:
         env:
           PNG: ${{ steps.render.outputs.PNG }}
           SVG: ${{ steps.render.outputs.SVG }}
+          TITLE: ${{ steps.render.outputs.TITLE }}
+          SIZE: ${{ steps.render.outputs.SIZE }}
+          THEME: ${{ steps.render.outputs.THEME }}
+          LAYOUT: ${{ steps.render.outputs.LAYOUT }}
+          PATTERN: ${{ steps.render.outputs.PATTERN }}
         with:
           script: |
             const png = process.env.PNG;
             const svg = process.env.SVG;
             const raw = (p) => `https://github.com/${context.repo.owner}/${context.repo.repo}/raw/main/${p}`;
+            // Khối JSON máy đọc: agent mở issue rồi parse được kết quả mà
+            // không phải bóc chữ trong comment.
+            const meta = {
+              ok: true,
+              file: png,
+              svg,
+              png_url: raw(png),
+              svg_url: raw(svg),
+              title: process.env.TITLE,
+              theme: process.env.THEME,
+              layout: process.env.LAYOUT,
+              size: process.env.SIZE,
+              pattern: process.env.PATTERN,
+              issue: context.issue.number,
+              run_id: context.runId,
+              run_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            };
             const body = [
               '✅ **Đã render xong**',
               '',
               `![ảnh](${raw(png)})`,
               '',
               `[Tải PNG](${raw(png)}) · [Xem SVG](${raw(svg)}) · [Thư viện gallery](../../tree/main/gallery)`,
+              '',
+              '```json',
+              JSON.stringify(meta, null, 2),
+              '```',
             ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,

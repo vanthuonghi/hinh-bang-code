@@ -4,8 +4,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSVG, parseRequest, slugify, wrap,
-         THEMES, SIZES, SIZE_LABELS, LAYOUTS, PRESETS } from '../lib/svg.js';
+import { buildSVG, parseRequest, slugify, wrap, estimateWidth, validateRequest,
+         THEMES, SIZES, SIZE_LABELS, LAYOUTS, PRESETS, PATTERNS } from '../lib/svg.js';
 
 const LONG_TITLE = 'Đây là tiêu đề cực dài dùng để kiểm tra tràn khung khi kích thước hình nhỏ và nội dung nhiều dòng';
 const LONG_SUB = 'Phụ đề cũng khá dài để xem khối nội dung có vượt quá chiều cao của ảnh hay không nhé bạn ơi';
@@ -82,7 +82,7 @@ test('chỉ dùng entity số — librsvg không định nghĩa entity HTML (l�
   }
 });
 
-test('toàn bộ ma trận 18 màu × 12 size × 9 bố cục: không đè footer, không tràn mép trên', () => {
+test(`toàn bộ ma trận ${Object.keys(THEMES).length} màu × ${Object.keys(SIZES).length} size × ${Object.keys(LAYOUTS).length} bố cục: không đè footer, không tràn mép trên`, () => {
   const cases = [
     { title: LONG_TITLE, subtitle: LONG_SUB },
     { title: LONG_TITLE, subtitle: BULLET_SUB },
@@ -106,11 +106,83 @@ test('toàn bộ ma trận 18 màu × 12 size × 9 bố cục: không đè foote
   assert.equal(checked, Object.keys(THEMES).length * Object.keys(SIZES).length * Object.keys(LAYOUTS).length * cases.length);
 });
 
+test('mọi <text> nằm trong khung ngang của ảnh (kể cả từ dài, tiếng Việt có dấu)', () => {
+  const cases = [
+    { title: LONG_TITLE, subtitle: LONG_SUB },
+    { title: 'Supercalifragilisticexpialidocious-and-a-very-long-url-https://example.com/x', subtitle: BULLET_SUB },
+    { title: '40%', subtitle: 'Một con số rất ngắn' },
+  ];
+  const unescape = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'").replace(/&amp;/g, '&').replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d));
+  for (const layout of Object.keys(LAYOUTS))
+    for (const size of Object.keys(SIZES))
+      for (const pattern of Object.keys(PATTERNS)) {
+        const [W, H] = SIZES[size];
+        for (const c of cases) {
+          const svg = buildSVG({ ...c, author: 'VANHI', footer: 'x', theme: 'aurora', size, layout, pattern });
+          for (const [, attrs, raw] of svg.matchAll(/<text ([^>]*)>([\s\S]*?)<\/text>/g)) {
+            const attr = (name) => (attrs.match(new RegExp(`${name}="([^"]*)"`)) || [])[1];
+            const x = Number(attr('x'));
+            const fs = Number(attr('font-size'));
+            const weight = Number(attr('font-weight') || 400);
+            const ls = Number(attr('letter-spacing') || 0);
+            const text = unescape(raw);
+            const w = estimateWidth(text, fs, weight) + ls * Math.max(0, [...text].length - 1);
+            const anchor = attr('text-anchor');
+            const left = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
+            assert.ok(left >= -2 && left + w <= W + 2,
+              `tràn ngang ${layout}/${size}/${pattern}: “${text.slice(0, 24)}” → ${left.toFixed(0)}..${(left + w).toFixed(0)} (W=${W})`);
+            assert.ok(Number(attr('y')) <= H + 1, `chữ dưới đáy ảnh ${layout}/${size}/${pattern}`);
+          }
+        }
+      }
+});
+
+test('footer: để trống thì đáy ảnh sạch, chỉ vẽ khi có "Chú thích"', () => {
+  const H = (s) => SIZES[s][1];
+  const texts = (svg) => [...svg.matchAll(/<text ([^>]*)>([\s\S]*?)<\/text>/g)]
+    .map(([, attrs, body]) => ({ y: Number((attrs.match(/y="([\d.]+)"/) || [])[1]), body }));
+
+  for (const size of Object.keys(SIZES)) {
+    const pad = Math.round(SIZES[size][0] * 0.07);
+    const baseline = H(size) - pad;
+    for (const layout of Object.keys(LAYOUTS)) {
+      const empty = buildSVG({ title: 'Tiêu đề', subtitle: 'Phụ đề', author: 'VANHI', footer: '',
+                                theme: 'paper', size, layout });
+      // Không còn chữ mặc định "sinh bằng code · ngày" hay "theme · layout · size".
+      assert.ok(!/sinh bằng code/i.test(empty), `còn chữ rác mặc định: ${layout}/${size}`);
+      assert.ok(!/\b(paper|mono)\s*·\s*\w+\s*·\s*\d{3,4}×\d{3,4}/.test(empty),
+        `còn dòng meta theme/layout/size: ${layout}/${size}`);
+      const atBottom = texts(empty).filter((t) => Math.abs(t.y - baseline) < 0.5);
+      assert.equal(atBottom.length, 0, `đáy ảnh còn ${atBottom.length} dòng thừa: ${layout}/${size}`);
+
+      const withFooter = buildSVG({ title: 'Tiêu đề', subtitle: '', author: '', footer: 'vanthuonghi.com',
+                                    theme: 'paper', size, layout });
+      const lines = texts(withFooter).filter((t) => Math.abs(t.y - baseline) < 0.5);
+      assert.equal(lines.length, 1, `footer phải đúng 1 dòng: ${layout}/${size}`);
+      assert.equal(lines[0].body, 'vanthuonghi.com');
+    }
+  }
+});
+
 test('bố cục không có tiêu đề/trắng vẫn render được', () => {
   for (const layout of Object.keys(LAYOUTS)) {
     const svg = buildSVG({ title: '', subtitle: '', author: '', footer: '', theme: 'sunset', size: '1200x630', layout });
     assert.ok(svg.endsWith('</svg>'));
   }
+});
+
+test('validateRequest: báo lỗi rõ thay vì im lặng fallback', () => {
+  const bad = validateRequest({ title: 'X', theme: 'khong-co', layout: 'x', size: '1x1', pattern: 'y' });
+  assert.equal(bad.ok, false);
+  assert.equal(bad.errors.length, 4, bad.errors.join(' | '));
+
+  const empty = validateRequest({});
+  assert.equal(empty.ok, false, 'thiếu tiêu đề phải là lỗi khi kiểm tra trước khi gửi');
+
+  const ok = validateRequest({ title: 'Tiêu đề', theme: 'aurora', size: '1080x1350' });
+  assert.equal(ok.ok, true);
+  assert.deepEqual(ok.errors, []);
 });
 
 test('wrap / slugify cơ bản', () => {
