@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" font-family="Noto Sans, DejaVu Sans, Helvetica Neue, Arial, sans-serif">
+<defs><linearGradient id="g-aurora-left" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2980"/><stop offset="1" stop-color="#26d0ce"/></linearGradient></defs>
+<rect width="1280" height="720" fill="url(#g-aurora-left)"/>
+<circle cx="1126.4" cy="129.6" r="204.8" fill="#ffffff26"/>
+<circle cx="153.6" cy="662.4" r="281.6" fill="#ffffff26"/>
+<circle cx="960" cy="612" r="89.60000000000001" fill="#ffffff26"/>
+<text x="90" y="223" font-size="18" font-weight="700" letter-spacing="3" text-anchor="start" fill="#ffffffd9" opacity="0.9">VĂN HỈ</text>
+<text x="90" y="303" font-size="70" font-weight="800" text-anchor="start" fill="#ffffff">Leonardo da Vinci - giao thoa</text>
+<text x="90" y="381" font-size="70" font-weight="800" text-anchor="start" fill="#ffffff">nhiều lĩnh vực</text>
+<text x="90" y="442" font-size="29" font-weight="400" text-anchor="start" fill="#ffffffd9">AI Agent cho doanh nghiệp nhỏ</text>
+<rect x="90" y="601" width="77" height="7" fill="#ffe08a"/>
+<text x="90" y="630" font-size="18" font-weight="600" fill="#ffffffd9">AI Agent Vietnam</text>
+<text x="1190" y="630" font-size="18" font-weight="600" text-anchor="end" fill="#ffffffd9">aurora · left · 1280×720</text>
+</svg>
