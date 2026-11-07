@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-06T13:09:00.290Z",
+  "generated": "2026-11-07T05:01:35.761Z",
   "images": [
+    {
+      "file": "hermes-agent-vs-chatgpt-20261107050135.png",
+      "svg": "hermes-agent-vs-chatgpt-20261107050135.svg",
+      "title": "Hermes Agent vs ChatGPT",
+      "theme": "sunset",
+      "layout": "left",
+      "size": "1080x1350",
+      "pattern": "orb",
+      "emoji": "🤖",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-07T05:01:35.761Z"
+    },
     {
       "file": "ghi-chu-khi-doc-phuong-phap-cornell-20261106130900.png",
       "svg": "ghi-chu-khi-doc-phuong-phap-cornell-20261106130900.svg",
