@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif" role="img">
+<title>AI không làm ta giống máy</title>
+<defs><linearGradient id="g-aurora-345" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2980"/><stop offset="1" stop-color="#26d0ce"/></linearGradient></defs>
+<rect width="1280" height="720" fill="url(#g-aurora-345)"/>
+<circle cx="1126" cy="130" r="205" fill="#ffffff26"/>
+<circle cx="154" cy="662" r="282" fill="#ffffff26"/>
+<circle cx="960" cy="612" r="90" fill="#ffffff26"/>
+<text x="640" y="131" font-size="23" font-weight="700" letter-spacing="5" text-anchor="middle" fill="#ffffffd9" opacity="0.92">VANHI</text>
+<text x="640" y="243" font-size="99" font-weight="800" letter-spacing="-2" text-anchor="middle" fill="#ffffff" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">AI không làm ta giống</text>
+<text x="640" y="355" font-size="99" font-weight="800" letter-spacing="-2" text-anchor="middle" fill="#ffffff" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">máy</text>
+<rect x="551" y="410" width="179" height="10" rx="5" fill="#ffe08a"/>
+<text x="640" y="535" font-size="40" font-weight="400" text-anchor="middle" fill="#ffffffd9" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">Cơ hội ngừng sống như máy</text>
+</svg>
