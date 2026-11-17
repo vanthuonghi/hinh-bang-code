@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-17T08:20:20.063Z",
+  "generated": "2026-11-17T08:21:51.282Z",
   "images": [
+    {
+      "file": "leonardo-da-vinci-20261117082151.png",
+      "svg": "leonardo-da-vinci-20261117082151.svg",
+      "title": "Leonardo da Vinci",
+      "theme": "sunset",
+      "layout": "list",
+      "size": "1080x1350",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-17T08:21:51.281Z"
+    },
     {
       "file": "don-bay-con-nguoi-20261117082019.png",
       "svg": "don-bay-con-nguoi-20261117082019.svg",
