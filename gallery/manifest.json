@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-17T08:18:30.130Z",
+  "generated": "2026-11-17T08:19:52.022Z",
   "images": [
+    {
+      "file": "leonardo-da-vinci-20261117081951.png",
+      "svg": "leonardo-da-vinci-20261117081951.svg",
+      "title": "Leonardo da Vinci",
+      "theme": "sunset",
+      "layout": "list",
+      "size": "1080x1350",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-17T08:19:52.021Z"
+    },
     {
       "file": "ket-hop-nang-luc-cong-nghe-20261117081830.png",
       "svg": "ket-hop-nang-luc-cong-nghe-20261117081830.svg",
