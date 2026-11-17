@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif" role="img">
+<title>7 đòn bẩy bứt phá</title>
+<defs><linearGradient id="g-midnight-169" x1="0" y1="0.35" x2="1" y2="0.65"><stop offset="0" stop-color="#141428"/><stop offset="1" stop-color="#3b2f63"/></linearGradient></defs>
+<rect width="1080" height="1350" fill="url(#g-midnight-169)"/>
+<circle cx="950" cy="243" r="173" fill="#ffffff1f"/>
+<circle cx="130" cy="1242" r="238" fill="#ffffff1f"/>
+<circle cx="810" cy="1148" r="76" fill="#ffffff1f"/>
+<text x="76" y="409" font-size="19" font-weight="700" letter-spacing="4" text-anchor="start" fill="#f5f3ffcc" opacity="0.92">VĂN HỈ</text>
+<text x="76" y="503" font-size="84" font-weight="800" letter-spacing="-1" text-anchor="start" fill="#f5f3ff" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">7 đòn bẩy bứt phá</text>
+<rect x="95" y="592.75" width="2" height="291" fill="#f5f3ffcc" opacity="0.35"/>
+<circle cx="96" cy="594.75" r="12" fill="#8b7cff"/>
+<circle cx="96" cy="594.75" r="16" fill="none" stroke="#8b7cff" stroke-width="2" opacity="0.55"/>
+<text x="137" y="599" font-size="34" font-weight="700" fill="#f5f3ffcc">Lao động</text>
+<circle cx="96" cy="666.75" r="10" fill="#f5f3ffcc"/>
+<text x="137" y="671" font-size="34" font-weight="500" fill="#f5f3ffcc">Vốn</text>
+<circle cx="96" cy="738.75" r="10" fill="#f5f3ffcc"/>
+<text x="137" y="743" font-size="34" font-weight="500" fill="#f5f3ffcc">Công nghệ</text>
+<circle cx="96" cy="810.75" r="10" fill="#f5f3ffcc"/>
+<text x="137" y="815" font-size="34" font-weight="500" fill="#f5f3ffcc">Tri thức</text>
+<circle cx="96" cy="882.75" r="10" fill="#f5f3ffcc"/>
+<text x="137" y="887" font-size="34" font-weight="500" fill="#f5f3ffcc">Mạng lưới</text>
+<rect x="76" y="1249" width="59" height="6" rx="3" fill="#8b7cff"/>
+<text x="76" y="1274" font-size="15" font-weight="600" fill="#f5f3ffcc">The Leverage Method - Văn Hỉ</text>
+</svg>
