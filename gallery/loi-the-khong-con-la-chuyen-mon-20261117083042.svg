@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif" role="img">
+<title>Lợi thế không còn là chuyên môn</title>
+<defs><linearGradient id="g-sunset-263" x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0" stop-color="#ff7e5f"/><stop offset="1" stop-color="#feb47b"/></linearGradient></defs>
+<rect width="1080" height="1350" fill="url(#g-sunset-263)"/>
+<circle cx="950" cy="243" r="173" fill="#ffffff38"/>
+<circle cx="130" cy="1242" r="238" fill="#ffffff38"/>
+<circle cx="810" cy="1148" r="76" fill="#ffffff38"/>
+<text x="76" y="433" font-size="19" font-weight="700" letter-spacing="4" text-anchor="start" fill="#33160fcc" opacity="0.92">VĂN HỈ</text>
+<text x="76" y="528" font-size="84" font-weight="800" letter-spacing="-1" text-anchor="start" fill="#33160f" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">Lợi thế không còn là</text>
+<text x="76" y="623" font-size="84" font-weight="800" letter-spacing="-1" text-anchor="start" fill="#33160f" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">chuyên môn</text>
+<circle cx="98" cy="714.25" r="22" fill="#33160f"/>
+<text x="98" y="722" font-size="23" font-weight="800" text-anchor="middle" fill="#ffffff">1</text>
+<text x="147" y="719" font-size="34" font-weight="500" fill="#33160fcc">Chuyên môn hẹp</text>
+<circle cx="98" cy="786.25" r="22" fill="#33160f"/>
+<text x="98" y="794" font-size="23" font-weight="800" text-anchor="middle" fill="#ffffff">2</text>
+<text x="147" y="791" font-size="34" font-weight="500" fill="#33160fcc">Đa năng</text>
+<circle cx="98" cy="858.25" r="22" fill="#33160f"/>
+<text x="98" y="866" font-size="23" font-weight="800" text-anchor="middle" fill="#ffffff">3</text>
+<text x="147" y="863" font-size="34" font-weight="500" fill="#33160fcc">AI khuếch đại</text>
+<rect x="76" y="1249" width="59" height="6" rx="3" fill="#33160f"/>
+<text x="76" y="1274" font-size="15" font-weight="600" fill="#33160fcc">AI Agent - Văn Hỉ</text>
+</svg>
