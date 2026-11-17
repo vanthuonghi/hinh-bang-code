@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif" role="img">
+<title>Phục Hưng thứ hai</title>
+<defs><linearGradient id="g-aurora-345" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2980"/><stop offset="1" stop-color="#26d0ce"/></linearGradient></defs>
+<rect width="1080" height="1350" fill="url(#g-aurora-345)"/>
+<rect x="-121" y="-270" width="96" height="2160" fill="#ffffff26" opacity="0.55" transform="rotate(18 -121 675)"/>
+<rect x="113" y="-270" width="101" height="2160" fill="#ffffff26" opacity="0.71" transform="rotate(18 113 675)"/>
+<rect x="385" y="-270" width="74" height="2160" fill="#ffffff26" opacity="0.52" transform="rotate(18 385 675)"/>
+<rect x="637" y="-270" width="82" height="2160" fill="#ffffff26" opacity="0.83" transform="rotate(18 637 675)"/>
+<rect x="911" y="-270" width="139" height="2160" fill="#ffffff26" opacity="0.63" transform="rotate(18 911 675)"/>
+<text x="540" y="400" font-size="29" font-weight="700" letter-spacing="6" text-anchor="middle" fill="#ffffffd9" opacity="0.92">VĂN HỈ</text>
+<text x="540" y="540" font-size="124" font-weight="800" letter-spacing="-2" text-anchor="middle" fill="#ffffff" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">Phục Hưng thứ</text>
+<text x="540" y="680" font-size="124" font-weight="800" letter-spacing="-2" text-anchor="middle" fill="#ffffff" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">hai</text>
+<rect x="465" y="749" width="151" height="12" rx="6" fill="#ffe08a"/>
+<text x="540" y="905" font-size="50" font-weight="400" text-anchor="middle" fill="#ffffffd9" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">AI mở ra kỷ nguyên đa năng</text>
+<rect x="76" y="1249" width="59" height="6" rx="3" fill="#ffe08a"/>
+<text x="76" y="1274" font-size="15" font-weight="600" fill="#ffffffd9">Văn Hỉ Official</text>
+</svg>
