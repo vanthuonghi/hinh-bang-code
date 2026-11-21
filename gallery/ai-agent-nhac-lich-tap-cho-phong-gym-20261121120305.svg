@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif" role="img">
+<title>AI Agent nhắc lịch tập cho phòng gym</title>
+<defs><linearGradient id="g-aurora-345" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2980"/><stop offset="1" stop-color="#26d0ce"/></linearGradient></defs>
+<rect width="1200" height="630" fill="url(#g-aurora-345)"/>
+<path d="M 441 281 C 445 16 656 89 818 66 C 1034 120 1007 470 764 524 C 522 578 387 443 441 281 Z" fill="#ffffff26"/>
+<path d="M -93 426 C -38 136 183 139 391 150 C 667 219 632 668 322 737 C 11 806 -162 634 -93 426 Z" fill="#ffffff26"/>
+<path d="M 195 286 C 197 29 402 68 558 78 C 765 130 739 467 506 519 C 273 570 143 441 195 286 Z" fill="#ffffff26"/>
+<path d="M 202 320 C 175 84 369 172 494 153 C 660 194 640 465 452 507 C 264 549 160 445 202 320 Z" fill="#ffffff26"/>
+<text x="84" y="197" font-size="96" font-weight="800" text-anchor="start" fill="#ffe08a" opacity="0.85">&#8220;</text>
+<text x="84" y="244" font-size="62" font-weight="800" letter-spacing="-1" text-anchor="start" fill="#ffffff" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">AI Agent nhắc lịch tập cho phòng</text>
+<text x="84" y="314" font-size="62" font-weight="800" letter-spacing="-1" text-anchor="start" fill="#ffffff" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">gym</text>
+<text x="84" y="385" font-size="25" font-weight="400" text-anchor="start" fill="#ffffffd9" font-family="Noto Sans, DejaVu Sans, Segoe UI, Helvetica Neue, Arial, sans-serif">vanhi.id.vn</text>
+<text x="84" y="449" font-size="25" font-weight="700" letter-spacing="3" text-anchor="start" fill="#ffe08a">— VĂN HỈ</text>
+</svg>
