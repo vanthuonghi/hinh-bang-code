@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-22T12:03:09.835Z",
+  "generated": "2026-11-22T13:04:19.045Z",
   "images": [
+    {
+      "file": "dung-tap-mat-hay-do-duong-20261122130418.png",
+      "svg": "dung-tap-mat-hay-do-duong-20261122130418.svg",
+      "title": "Đừng Tập Mắt, Hãy Dò Đường",
+      "theme": "ocean",
+      "layout": "quote",
+      "size": "1200x630",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-22T13:04:19.045Z"
+    },
     {
       "file": "ai-agent-cho-bat-dong-san-20261122120309.png",
       "svg": "ai-agent-cho-bat-dong-san-20261122120309.svg",
@@ -1159,15 +1172,6 @@
       "size": "1920x1080",
       "issue": "2",
       "date": "2026-10-29T02:21:39.116Z"
-    },
-    {
-      "file": "hanh-trinh-tu-dong-hoa-cho-doanh-nghiep-nho-20261029021859-iss1.png",
-      "svg": "hanh-trinh-tu-dong-hoa-cho-doanh-nghiep-nho-20261029021859-iss1.svg",
-      "title": "Hành trình tự động hóa cho doanh nghiệp nhỏ",
-      "theme": "forest",
-      "size": "1200x630",
-      "issue": "1",
-      "date": "2026-10-29T02:18:59.756Z"
     }
   ]
 }
