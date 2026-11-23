@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-23T05:05:39.521Z",
+  "generated": "2026-11-23T12:03:14.245Z",
   "images": [
+    {
+      "file": "ai-agent-cho-nha-hang-dat-ban-tu-dong-20261123120314.png",
+      "svg": "ai-agent-cho-nha-hang-dat-ban-tu-dong-20261123120314.svg",
+      "title": "AI Agent cho nha hang - Dat ban tu dong",
+      "theme": "aurora",
+      "layout": "quote",
+      "size": "1200x630",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-23T12:03:14.244Z"
+    },
     {
       "file": "khach-im-luon-ai-lo-phan-con-lai-20261123050539.png",
       "svg": "khach-im-luon-ai-lo-phan-con-lai-20261123050539.svg",
@@ -1167,15 +1180,6 @@
       "size": "1200x630",
       "issue": "5",
       "date": "2026-10-29T02:48:05.300Z"
-    },
-    {
-      "file": "1-thoi-quen-moi-sang-20261029022231-iss3.png",
-      "svg": "1-thoi-quen-moi-sang-20261029022231-iss3.svg",
-      "title": "1 thói quen mỗi sáng",
-      "theme": "violet",
-      "size": "1080x1080",
-      "issue": "3",
-      "date": "2026-10-29T02:22:31.796Z"
     }
   ]
 }
