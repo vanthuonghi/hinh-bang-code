@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-23T12:03:14.245Z",
+  "generated": "2026-11-23T13:02:50.706Z",
   "images": [
+    {
+      "file": "dung-tap-mat-hay-do-duong-20261123130250.png",
+      "svg": "dung-tap-mat-hay-do-duong-20261123130250.svg",
+      "title": "Đừng tập mắt, hãy dò đường",
+      "theme": "ocean",
+      "layout": "quote",
+      "size": "1200x630",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-23T13:02:50.705Z"
+    },
     {
       "file": "ai-agent-cho-nha-hang-dat-ban-tu-dong-20261123120314.png",
       "svg": "ai-agent-cho-nha-hang-dat-ban-tu-dong-20261123120314.svg",
@@ -1171,15 +1184,6 @@
       "issue": null,
       "user": "vanthuonghi",
       "date": "2026-10-29T02:53:02.938Z"
-    },
-    {
-      "file": "kiem-thu-nut-tao-yeu-cau-qua-api-20261029024805-iss5.png",
-      "svg": "kiem-thu-nut-tao-yeu-cau-qua-api-20261029024805-iss5.svg",
-      "title": "Kiểm thử nút Tạo yêu cầu qua API",
-      "theme": "sunset",
-      "size": "1200x630",
-      "issue": "5",
-      "date": "2026-10-29T02:48:05.300Z"
     }
   ]
 }
