@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-23T13:02:50.706Z",
+  "generated": "2026-11-23T13:05:13.706Z",
   "images": [
+    {
+      "file": "bionic-reading-khong-giup-doc-nhanh-hon-20261123130513.png",
+      "svg": "bionic-reading-khong-giup-doc-nhanh-hon-20261123130513.svg",
+      "title": "Bionic Reading không giúp đọc nhanh hơn",
+      "theme": "ocean",
+      "layout": "quote",
+      "size": "1200x630",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-23T13:05:13.705Z"
+    },
     {
       "file": "dung-tap-mat-hay-do-duong-20261123130250.png",
       "svg": "dung-tap-mat-hay-do-duong-20261123130250.svg",
@@ -1173,17 +1186,6 @@
       "issue": "6",
       "user": "vanthuonghi",
       "date": "2026-10-29T02:54:53.962Z"
-    },
-    {
-      "file": "test-cli-goi-tu-hermes-20261029025302.png",
-      "svg": "test-cli-goi-tu-hermes-20261029025302.svg",
-      "title": "Test CLI gọi từ Hermes",
-      "theme": "aurora",
-      "layout": "center",
-      "size": "1080x1350",
-      "issue": null,
-      "user": "vanthuonghi",
-      "date": "2026-10-29T02:53:02.938Z"
     }
   ]
 }
