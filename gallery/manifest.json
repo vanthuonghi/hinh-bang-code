@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-23T13:05:13.706Z",
+  "generated": "2026-11-24T05:05:33.840Z",
   "images": [
+    {
+      "file": "khach-hoi-gia-roi-im-ai-nhac-20261124050533.png",
+      "svg": "khach-hoi-gia-roi-im-ai-nhac-20261124050533.svg",
+      "title": "Khách hỏi giá rồi im? AI nhắc",
+      "theme": "aurora",
+      "layout": "quote",
+      "size": "1080x1350",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-24T05:05:33.839Z"
+    },
     {
       "file": "bionic-reading-khong-giup-doc-nhanh-hon-20261123130513.png",
       "svg": "bionic-reading-khong-giup-doc-nhanh-hon-20261123130513.svg",
@@ -1175,17 +1188,6 @@
       "issue": null,
       "user": "vanthuonghi",
       "date": "2026-10-29T02:58:04.302Z"
-    },
-    {
-      "file": "test-nhanh-issue-voi-code-moi-20261029025453-iss6.png",
-      "svg": "test-nhanh-issue-voi-code-moi-20261029025453-iss6.svg",
-      "title": "Test nhánh issue với code mới",
-      "theme": "mint",
-      "layout": "center",
-      "size": "1640x624",
-      "issue": "6",
-      "user": "vanthuonghi",
-      "date": "2026-10-29T02:54:53.962Z"
     }
   ]
 }
