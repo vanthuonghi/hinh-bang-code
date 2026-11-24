@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-24T05:05:33.840Z",
+  "generated": "2026-11-24T12:02:18.846Z",
   "images": [
+    {
+      "file": "ai-agent-tra-loi-review-tu-dong-20261124120218.png",
+      "svg": "ai-agent-tra-loi-review-tu-dong-20261124120218.svg",
+      "title": "AI Agent trả lời review tự động",
+      "theme": "aurora",
+      "layout": "quote",
+      "size": "1200x630",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-24T12:02:18.845Z"
+    },
     {
       "file": "khach-hoi-gia-roi-im-ai-nhac-20261124050533.png",
       "svg": "khach-hoi-gia-roi-im-ai-nhac-20261124050533.svg",
@@ -1177,17 +1190,6 @@
       "issue": null,
       "user": "vanthuonghi",
       "date": "2026-10-29T07:44:35.250Z"
-    },
-    {
-      "file": "test-api-tu-readme-20261029025804.png",
-      "svg": "test-api-tu-readme-20261029025804.svg",
-      "title": "Test API từ README",
-      "theme": "rose",
-      "layout": "quote",
-      "size": "1200x1200",
-      "issue": null,
-      "user": "vanthuonghi",
-      "date": "2026-10-29T02:58:04.302Z"
     }
   ]
 }
