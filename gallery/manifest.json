@@ -1,6 +1,19 @@
 {
-  "generated": "2026-11-24T12:02:18.846Z",
+  "generated": "2026-11-25T05:02:41.052Z",
   "images": [
+    {
+      "file": "ai-dao-nguoc-chuyen-mon-20261125050240.png",
+      "svg": "ai-dao-nguoc-chuyen-mon-20261125050240.svg",
+      "title": "AI đảo ngược chuyên môn",
+      "theme": "sunset",
+      "layout": "hero",
+      "size": "1080x1350",
+      "pattern": "orb",
+      "emoji": "",
+      "issue": null,
+      "user": "vanthuonghi",
+      "date": "2026-11-25T05:02:41.051Z"
+    },
     {
       "file": "ai-agent-tra-loi-review-tu-dong-20261124120218.png",
       "svg": "ai-agent-tra-loi-review-tu-dong-20261124120218.svg",
@@ -1179,17 +1192,6 @@
       "issue": null,
       "user": "vanthuonghi",
       "date": "2026-10-29T07:49:27.040Z"
-    },
-    {
-      "file": "verify-run-sau-p0-p1-terminal-1280x720-20261029074435.png",
-      "svg": "verify-run-sau-p0-p1-terminal-1280x720-20261029074435.svg",
-      "title": "Verify run sau P0 P1 — terminal 1280x720",
-      "theme": "steel",
-      "layout": "terminal",
-      "size": "1280x720",
-      "issue": null,
-      "user": "vanthuonghi",
-      "date": "2026-10-29T07:44:35.250Z"
     }
   ]
 }
